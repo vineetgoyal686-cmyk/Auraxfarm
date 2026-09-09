@@ -48,12 +48,14 @@ export function AuthProvider({ children }) {
     if (error) throw error
   }
 
-  async function signUp(email, password, chosenRole) {
+  async function signUp(email, password) {
     if (!isSupabaseConfigured) throw new Error('Supabase is not configured yet.')
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) throw error
     if (data.user) {
-      await supabase.from('profiles').upsert({ id: data.user.id, email, role: chosenRole })
+      // Self-service signup can only ever create Field User accounts.
+      // Administrator accounts must be created/promoted directly in the database.
+      await supabase.from('profiles').upsert({ id: data.user.id, email, role: 'field' })
     }
   }
 

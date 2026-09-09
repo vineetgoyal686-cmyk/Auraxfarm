@@ -31,7 +31,7 @@ export default function Login() {
       if (mode === 'signin') {
         await signIn(email, password)
       } else {
-        await signUp(email, password, role)
+        await signUp(email, password)
       }
     } catch (err) {
       setError(err.message)
@@ -89,7 +89,9 @@ export default function Login() {
             </button>
 
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">{t.login}</h2>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {mode === 'signin' ? t.login : 'Create Field User Account'}
+              </h2>
               <div className="flex rounded-full border p-1 bg-gray-50">
                 {['en', 'hi', 'pa'].map((code) => (
                   <button
@@ -113,25 +115,27 @@ export default function Login() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-2xl">
-                {[
-                  { k: 'field', label: t.fieldUser },
-                  { k: 'admin', label: t.admin }
-                ].map((r) => (
-                  <button
-                    type="button"
-                    key={r.k}
-                    onClick={() => setRole(r.k)}
-                    className={`py-3 rounded-xl font-bold text-xs transition ${
-                      role === r.k
-                        ? 'bg-white shadow text-green-700 border border-green-200'
-                        : 'text-gray-500'
-                    }`}
-                  >
-                    {r.label}
-                  </button>
-                ))}
-              </div>
+              {mode === 'signin' && (
+                <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-2xl">
+                  {[
+                    { k: 'field', label: t.fieldUser },
+                    { k: 'admin', label: t.admin }
+                  ].map((r) => (
+                    <button
+                      type="button"
+                      key={r.k}
+                      onClick={() => setRole(r.k)}
+                      className={`py-3 rounded-xl font-bold text-xs transition ${
+                        role === r.k
+                          ? 'bg-white shadow text-green-700 border border-green-200'
+                          : 'text-gray-500'
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {isSupabaseConfigured && (
                 <>
@@ -179,7 +183,10 @@ export default function Login() {
               {isSupabaseConfigured && (
                 <button
                   type="button"
-                  onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+                  onClick={() => {
+                    if (mode === 'signin') setRole('field')
+                    setMode(mode === 'signin' ? 'signup' : 'signin')
+                  }}
                   className="w-full text-xs text-green-700 font-bold underline"
                 >
                   {mode === 'signin' ? 'New here? Create an account' : 'Already have an account? Sign in'}
