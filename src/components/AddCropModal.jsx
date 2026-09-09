@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { X, Wheat } from 'lucide-react'
 import { upsertRow, newLocalId } from '../lib/localStore.js'
-import { MASTER_DATA } from '../lib/masterData.js'
 
 export default function AddCropModal({ farmId, onClose, onSaved }) {
   const [form, setForm] = useState({})
@@ -9,7 +8,7 @@ export default function AddCropModal({ farmId, onClose, onSaved }) {
 
   function handleSave() {
     if (!form.name) {
-      alert('Select a crop')
+      alert('Enter a crop name')
       return
     }
     const row = {
@@ -46,23 +45,18 @@ export default function AddCropModal({ farmId, onClose, onSaved }) {
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
             <label className="text-xs font-bold uppercase text-gray-500">Crop Name</label>
-            <select
+            <input
               value={form.name || ''}
               onChange={(e) => set('name', e.target.value)}
-              className="w-full mt-1 px-3 py-3 rounded-xl border bg-gray-50"
-            >
-              <option value="">Select Crop</option>
-              {MASTER_DATA.crops.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
+              className="w-full mt-1 px-3 py-3 rounded-xl border bg-white"
+            />
           </div>
           <div>
             <label className="text-xs font-bold uppercase text-gray-500">Season</label>
             <select
               value={form.season || ''}
               onChange={(e) => set('season', e.target.value)}
-              className="w-full mt-1 px-3 py-3 rounded-xl border bg-gray-50"
+              className="w-full mt-1 px-3 py-3 rounded-xl border bg-white"
             >
               <option value="">Select</option>
               <option>Rabi</option>
@@ -75,8 +69,7 @@ export default function AddCropModal({ farmId, onClose, onSaved }) {
             <input
               value={form.yield || ''}
               onChange={(e) => set('yield', e.target.value)}
-              className="w-full mt-1 px-3 py-3 rounded-xl border bg-gray-50"
-              placeholder="e.g. 22"
+              className="w-full mt-1 px-3 py-3 rounded-xl border bg-white"
             />
           </div>
           <div>
@@ -85,7 +78,7 @@ export default function AddCropModal({ farmId, onClose, onSaved }) {
               type="date"
               value={form.sowingDate || ''}
               onChange={(e) => set('sowingDate', e.target.value)}
-              className="w-full mt-1 px-3 py-3 rounded-xl border bg-gray-50"
+              className="w-full mt-1 px-3 py-3 rounded-xl border bg-white"
             />
           </div>
           <div>
@@ -94,7 +87,7 @@ export default function AddCropModal({ farmId, onClose, onSaved }) {
               type="date"
               value={form.harvestDate || ''}
               onChange={(e) => set('harvestDate', e.target.value)}
-              className="w-full mt-1 px-3 py-3 rounded-xl border bg-gray-50"
+              className="w-full mt-1 px-3 py-3 rounded-xl border bg-white"
             />
           </div>
           <div>
@@ -102,22 +95,16 @@ export default function AddCropModal({ farmId, onClose, onSaved }) {
             <input
               value={form.sprays || ''}
               onChange={(e) => set('sprays', e.target.value)}
-              placeholder="e.g. 0"
-              className="w-full mt-1 px-3 py-3 rounded-xl border bg-gray-50"
+              className="w-full mt-1 px-3 py-3 rounded-xl border bg-white"
             />
           </div>
           <div className="col-span-2">
             <label className="text-xs font-bold uppercase text-gray-500">Fertilizer Used</label>
-            <select
+            <input
               value={form.fertilizer || ''}
               onChange={(e) => set('fertilizer', e.target.value)}
-              className="w-full mt-1 px-3 py-3 rounded-xl border bg-gray-50"
-            >
-              <option value="">Select Fertilizer</option>
-              {MASTER_DATA.fertilizers.map((f) => (
-                <option key={f}>{f}</option>
-              ))}
-            </select>
+              className="w-full mt-1 px-3 py-3 rounded-xl border bg-white"
+            />
           </div>
         </div>
 

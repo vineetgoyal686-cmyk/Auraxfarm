@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react'
 import { X, Tractor, Navigation as NavIcon, Wheat } from 'lucide-react'
 import { upsertRow, newLocalId } from '../lib/localStore.js'
 import { useGeo } from '../lib/useGeo.js'
-import { MASTER_DATA } from '../lib/masterData.js'
 
 export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
   const [form, setForm] = useState({
@@ -17,10 +16,7 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
   const { position, error, capture } = useGeo()
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
 
-  const autoId = useMemo(
-    () => `FARM-${(form.state || 'HR').slice(0, 2).toUpperCase()}-${(form.district || 'KARN').slice(0, 4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
-    [form.state, form.district]
-  )
+  const autoId = useMemo(() => newLocalId('FARM'), [])
 
   function handleSave() {
     if (!form.farmerId) {
@@ -91,7 +87,7 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
               <select
                 value={form.farmerId}
                 onChange={(e) => set('farmerId', e.target.value)}
-                className="w-full px-3 py-3 rounded-xl border border-gray-200 bg-gray-50 outline-none"
+                className="w-full px-3 py-3 rounded-xl border border-gray-200 bg-white outline-none"
               >
                 {farmers.length === 0 && <option value="">No farmers yet — add one first</option>}
                 {farmers.map((f) => (
@@ -108,13 +104,12 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                 <input
                   value={form.area || ''}
                   onChange={(e) => set('area', e.target.value)}
-                  placeholder="e.g. 5.5"
-                  className="flex-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                  className="flex-1 px-3 py-3 rounded-xl border border-gray-200 bg-white"
                 />
                 <select
                   value={form.areaUnit || ''}
                   onChange={(e) => set('areaUnit', e.target.value)}
-                  className="w-28 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm font-bold"
+                  className="w-28 px-3 py-3 rounded-xl border border-gray-200 bg-white text-sm font-bold"
                 >
                   <option value="">Unit</option>
                   <option>Acres</option>
@@ -145,7 +140,7 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                 <label
                   key={item.k}
                   className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 cursor-pointer transition ${
-                    form[item.k] ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50'
+                    form[item.k] ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white'
                   }`}
                 >
                   <input
@@ -174,23 +169,18 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <label className="text-xs font-semibold text-gray-600 uppercase">Crop Name</label>
-                  <select
+                  <input
                     value={form.cropName || ''}
                     onChange={(e) => set('cropName', e.target.value)}
-                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
-                  >
-                    <option value="">Select Crop</option>
-                    {MASTER_DATA.crops.map((c) => (
-                      <option key={c}>{c}</option>
-                    ))}
-                  </select>
+                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-white"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 uppercase">Season</label>
                   <select
                     value={form.season || ''}
                     onChange={(e) => set('season', e.target.value)}
-                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-white"
                   >
                     <option value="">Select</option>
                     <option>Rabi</option>
@@ -203,8 +193,7 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                   <input
                     value={form.yield || ''}
                     onChange={(e) => set('yield', e.target.value)}
-                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
-                    placeholder="e.g. 22"
+                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-white"
                   />
                 </div>
                 <div>
@@ -213,7 +202,7 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                     type="date"
                     value={form.sowingDate || ''}
                     onChange={(e) => set('sowingDate', e.target.value)}
-                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-white"
                   />
                 </div>
                 <div>
@@ -222,7 +211,7 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                     type="date"
                     value={form.harvestDate || ''}
                     onChange={(e) => set('harvestDate', e.target.value)}
-                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-white"
                   />
                 </div>
                 <div>
@@ -230,22 +219,16 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                   <input
                     value={form.sprays || ''}
                     onChange={(e) => set('sprays', e.target.value)}
-                    placeholder="e.g. 0"
-                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-white"
                   />
                 </div>
                 <div className="col-span-2">
                   <label className="text-xs font-semibold text-gray-600 uppercase">Fertilizer Used</label>
-                  <select
+                  <input
                     value={form.fertilizer || ''}
                     onChange={(e) => set('fertilizer', e.target.value)}
-                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
-                  >
-                    <option value="">Select Fertilizer</option>
-                    {MASTER_DATA.fertilizers.map((f) => (
-                      <option key={f}>{f}</option>
-                    ))}
-                  </select>
+                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-white"
+                  />
                 </div>
               </div>
             </div>

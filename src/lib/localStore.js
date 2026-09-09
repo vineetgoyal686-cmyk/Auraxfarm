@@ -57,5 +57,6 @@ export function replaceTable(table, rows) {
 }
 
 export function newLocalId(prefix) {
-  return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+  const rand = Math.floor(1000 + Math.random() * 9000)
+  return `${prefix}-${rand}`
 }
