@@ -7,16 +7,12 @@ import { MASTER_DATA } from '../lib/masterData.js'
 export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
   const [form, setForm] = useState({
     title: 'Owner',
-    areaUnit: 'Acres',
     topography: 'Plain',
     irrigation: '50',
     tractor: false,
     tubeWell: false,
     hireLabour: false,
-    farmerId: farmers[0]?.id || '',
-    cropName: 'Wheat',
-    season: 'Rabi',
-    sprays: '0'
+    farmerId: farmers[0]?.id || ''
   })
   const { position, error, capture } = useGeo()
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
@@ -116,10 +112,11 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                   className="flex-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
                 />
                 <select
-                  value={form.areaUnit}
+                  value={form.areaUnit || ''}
                   onChange={(e) => set('areaUnit', e.target.value)}
                   className="w-28 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm font-bold"
                 >
+                  <option value="">Unit</option>
                   <option>Acres</option>
                   <option>Bigha</option>
                 </select>
@@ -178,10 +175,11 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                 <div className="col-span-2">
                   <label className="text-xs font-semibold text-gray-600 uppercase">Crop Name</label>
                   <select
-                    value={form.cropName}
+                    value={form.cropName || ''}
                     onChange={(e) => set('cropName', e.target.value)}
                     className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
                   >
+                    <option value="">Select Crop</option>
                     {MASTER_DATA.crops.map((c) => (
                       <option key={c}>{c}</option>
                     ))}
@@ -190,10 +188,11 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                 <div>
                   <label className="text-xs font-semibold text-gray-600 uppercase">Season</label>
                   <select
-                    value={form.season}
+                    value={form.season || ''}
                     onChange={(e) => set('season', e.target.value)}
                     className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
                   >
+                    <option value="">Select</option>
                     <option>Rabi</option>
                     <option>Kharif</option>
                     <option>Zaid</option>
@@ -231,6 +230,7 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                   <input
                     value={form.sprays || ''}
                     onChange={(e) => set('sprays', e.target.value)}
+                    placeholder="e.g. 0"
                     className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
                   />
                 </div>

@@ -4,15 +4,19 @@ import { upsertRow, newLocalId } from '../lib/localStore.js'
 import { MASTER_DATA } from '../lib/masterData.js'
 
 export default function AddCropModal({ farmId, onClose, onSaved }) {
-  const [form, setForm] = useState({ name: 'Wheat', season: 'Rabi', sprays: '0' })
+  const [form, setForm] = useState({})
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
 
   function handleSave() {
+    if (!form.name) {
+      alert('Select a crop')
+      return
+    }
     const row = {
       id: newLocalId('CR'),
       farm_id: farmId,
-      name: form.name || 'Wheat',
-      season: form.season || 'Rabi',
+      name: form.name,
+      season: form.season || '',
       sowing_date: form.sowingDate || '',
       harvest_date: form.harvestDate || '',
       yield: form.yield || '',
@@ -43,10 +47,11 @@ export default function AddCropModal({ farmId, onClose, onSaved }) {
           <div className="col-span-2">
             <label className="text-xs font-bold uppercase text-gray-500">Crop Name</label>
             <select
-              value={form.name}
+              value={form.name || ''}
               onChange={(e) => set('name', e.target.value)}
               className="w-full mt-1 px-3 py-3 rounded-xl border bg-gray-50"
             >
+              <option value="">Select Crop</option>
               {MASTER_DATA.crops.map((c) => (
                 <option key={c}>{c}</option>
               ))}
@@ -55,10 +60,11 @@ export default function AddCropModal({ farmId, onClose, onSaved }) {
           <div>
             <label className="text-xs font-bold uppercase text-gray-500">Season</label>
             <select
-              value={form.season}
+              value={form.season || ''}
               onChange={(e) => set('season', e.target.value)}
               className="w-full mt-1 px-3 py-3 rounded-xl border bg-gray-50"
             >
+              <option value="">Select</option>
               <option>Rabi</option>
               <option>Kharif</option>
               <option>Zaid</option>
@@ -96,6 +102,7 @@ export default function AddCropModal({ farmId, onClose, onSaved }) {
             <input
               value={form.sprays || ''}
               onChange={(e) => set('sprays', e.target.value)}
+              placeholder="e.g. 0"
               className="w-full mt-1 px-3 py-3 rounded-xl border bg-gray-50"
             />
           </div>

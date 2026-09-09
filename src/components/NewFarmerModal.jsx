@@ -27,14 +27,7 @@ const FIELDS = [
 ]
 
 export default function NewFarmerModal({ lang, onClose, onSaved }) {
-  const [form, setForm] = useState({
-    gender: 'Male',
-    kcc: 'No',
-    qualification: '10th',
-    state: 'Haryana',
-    district: 'Karnal',
-    village: 'Samalkha'
-  })
+  const [form, setForm] = useState({})
   const [photoFile, setPhotoFile] = useState(null)
   const [photoPreview, setPhotoPreview] = useState('')
   const [saving, setSaving] = useState(false)
