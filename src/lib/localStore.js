@@ -5,7 +5,7 @@
 // so the sync engine (see sync.js) knows what still needs to be pushed
 // to Supabase once a connection is available.
 
-const NS = 'kisansetu:'
+const NS = 'auraxfarm:'
 
 function readTable(table) {
   try {

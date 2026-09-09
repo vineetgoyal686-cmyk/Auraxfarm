@@ -3,6 +3,7 @@ import { X, User, Camera } from 'lucide-react'
 import VoiceInputButton from './VoiceInputButton.jsx'
 import { upsertRow, newLocalId } from '../lib/localStore.js'
 import { MASTER_DATA } from '../lib/masterData.js'
+import { uploadPhoto, fileToDataUrl } from '../lib/storage.js'
 
 const FIELDS = [
   { k: 'name', label: 'Name', req: true },
@@ -34,14 +35,28 @@ export default function NewFarmerModal({ lang, onClose, onSaved }) {
     district: 'Karnal',
     village: 'Samalkha'
   })
-  const [photo, setPhoto] = useState('')
+  const [photoFile, setPhotoFile] = useState(null)
+  const [photoPreview, setPhotoPreview] = useState('')
+  const [saving, setSaving] = useState(false)
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
 
-  function handleSave() {
+  function handlePhotoChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPhotoFile(file)
+    setPhotoPreview(URL.createObjectURL(file))
+  }
+
+  async function handleSave() {
     if (!form.name || !form.mobile) {
       alert('Name & Mobile are required')
       return
+    }
+    setSaving(true)
+    let photo = ''
+    if (photoFile) {
+      photo = (await uploadPhoto(photoFile, 'farmers')) || (await fileToDataUrl(photoFile))
     }
     const row = {
       id: newLocalId('FRM'),
@@ -52,6 +67,7 @@ export default function NewFarmerModal({ lang, onClose, onSaved }) {
       pending_op: 'upsert'
     }
     upsertRow('farmers', row)
+    setSaving(false)
     onSaved(row)
     onClose()
   }
@@ -71,23 +87,15 @@ export default function NewFarmerModal({ lang, onClose, onSaved }) {
         <div className="overflow-y-auto p-5 space-y-4">
           <div className="flex gap-4 items-center">
             <div className="w-20 h-20 rounded-2xl bg-green-50 border-2 border-dashed border-green-200 flex items-center justify-center overflow-hidden">
-              {photo ? <img src={photo} className="w-full h-full object-cover" alt="" /> : <Camera className="w-6 h-6 text-green-400" />}
+              {photoPreview ? (
+                <img src={photoPreview} className="w-full h-full object-cover" alt="" />
+              ) : (
+                <Camera className="w-6 h-6 text-green-400" />
+              )}
             </div>
             <label className="px-4 py-2 bg-green-600 text-white rounded-full text-sm font-medium cursor-pointer hover:bg-green-700">
               Add Photo
-              <input
-                type="file"
-                accept="image/*"
-                capture="user"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (!file) return
-                  const reader = new FileReader()
-                  reader.onload = () => setPhoto(reader.result)
-                  reader.readAsDataURL(file)
-                }}
-              />
+              <input type="file" accept="image/*" capture="user" className="hidden" onChange={handlePhotoChange} />
             </label>
           </div>
 
@@ -146,9 +154,10 @@ export default function NewFarmerModal({ lang, onClose, onSaved }) {
           </button>
           <button
             onClick={handleSave}
-            className="flex-1 py-3 rounded-xl bg-green-600 text-white font-semibold shadow-lg shadow-green-200 hover:bg-green-700"
+            disabled={saving}
+            className="flex-1 py-3 rounded-xl bg-green-600 text-white font-semibold shadow-lg shadow-green-200 hover:bg-green-700 disabled:opacity-60"
           >
-            Save Farmer
+            {saving ? 'Saving…' : 'Save Farmer'}
           </button>
         </div>
       </div>

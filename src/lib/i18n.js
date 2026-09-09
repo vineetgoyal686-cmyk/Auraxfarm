@@ -1,6 +1,6 @@
 export const translations = {
   en: {
-    appName: 'KisanSetu',
+    appName: 'AuraxFarm',
     tagline: 'Farm & Farmer Data Platform',
     login: 'Login',
     logout: 'Logout',

@@ -12,7 +12,7 @@ export function AuthProvider({ children }) {
     if (!isSupabaseConfigured) {
       // Local-only demo mode: role/session kept in localStorage so the UI
       // is fully clickable before Supabase keys are added.
-      const savedRole = localStorage.getItem('kisansetu:demoRole')
+      const savedRole = localStorage.getItem('auraxfarm:demoRole')
       if (savedRole) setRole(savedRole)
       setLoading(false)
       return
@@ -58,13 +58,13 @@ export function AuthProvider({ children }) {
   }
 
   function signInDemo(chosenRole) {
-    localStorage.setItem('kisansetu:demoRole', chosenRole)
+    localStorage.setItem('auraxfarm:demoRole', chosenRole)
     setRole(chosenRole)
   }
 
   async function signOut() {
     if (isSupabaseConfigured) await supabase.auth.signOut()
-    localStorage.removeItem('kisansetu:demoRole')
+    localStorage.removeItem('auraxfarm:demoRole')
     setSession(null)
     setRole(null)
   }

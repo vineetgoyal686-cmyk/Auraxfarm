@@ -4,7 +4,7 @@ import { pendingRows, markSynced, deleteRow } from './localStore'
 // Tables that participate in offline -> online sync, in the order they
 // should be pushed (farmers before farms before crops, so foreign keys
 // resolve on the server).
-export const SYNCED_TABLES = ['farmers', 'farms', 'crops', 'media']
+export const SYNCED_TABLES = ['farmers', 'farms', 'crops']
 
 /**
  * Push every pending (unsynced) row for one table to Supabase.

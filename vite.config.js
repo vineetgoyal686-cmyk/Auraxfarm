@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
       manifest: {
-        name: 'KisanSetu',
-        short_name: 'KisanSetu',
+        name: 'AuraxFarm',
+        short_name: 'AuraxFarm',
         description: 'Farm & Farmer Data Platform',
         theme_color: '#16a34a',
         background_color: '#fbf9f0',

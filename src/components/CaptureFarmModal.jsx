@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react'
-import { X, Tractor, Navigation as NavIcon } from 'lucide-react'
-import { upsertRow } from '../lib/localStore.js'
+import { X, Tractor, Navigation as NavIcon, Wheat } from 'lucide-react'
+import { upsertRow, newLocalId } from '../lib/localStore.js'
 import { useGeo } from '../lib/useGeo.js'
+import { MASTER_DATA } from '../lib/masterData.js'
 
 export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
   const [form, setForm] = useState({
@@ -12,7 +13,10 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
     tractor: false,
     tubeWell: false,
     hireLabour: false,
-    farmerId: farmers[0]?.id || ''
+    farmerId: farmers[0]?.id || '',
+    cropName: 'Wheat',
+    season: 'Rabi',
+    sprays: '0'
   })
   const { position, error, capture } = useGeo()
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
@@ -44,6 +48,25 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
       pending_op: 'upsert'
     }
     upsertRow('farms', row)
+
+    if (form.cropName) {
+      const cropRow = {
+        id: newLocalId('CR'),
+        farm_id: autoId,
+        name: form.cropName,
+        season: form.season || 'Rabi',
+        sowing_date: form.sowingDate || '',
+        harvest_date: form.harvestDate || '',
+        yield: form.yield || '',
+        sprays: form.sprays || '0',
+        fertilizer: form.fertilizer || '',
+        created_at: new Date().toISOString(),
+        synced: false,
+        pending_op: 'upsert'
+      }
+      upsertRow('crops', cropRow)
+    }
+
     onSaved(row)
     onClose()
   }
@@ -92,20 +115,14 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                   placeholder="e.g. 5.5"
                   className="flex-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
                 />
-                <div className="flex rounded-xl overflow-hidden border border-gray-200">
-                  {['Acres', 'Bigha'].map((u) => (
-                    <button
-                      key={u}
-                      type="button"
-                      onClick={() => set('areaUnit', u)}
-                      className={`px-3 py-2 text-xs font-bold ${
-                        form.areaUnit === u ? 'bg-green-600 text-white' : 'bg-white text-gray-600'
-                      }`}
-                    >
-                      {u}
-                    </button>
-                  ))}
-                </div>
+                <select
+                  value={form.areaUnit}
+                  onChange={(e) => set('areaUnit', e.target.value)}
+                  className="w-28 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm font-bold"
+                >
+                  <option>Acres</option>
+                  <option>Bigha</option>
+                </select>
               </div>
             </div>
 
@@ -150,6 +167,87 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                   </span>
                 </label>
               ))}
+            </div>
+
+            <div className="sm:col-span-2 pt-2 border-t">
+              <div className="flex items-center gap-2 mb-3">
+                <Wheat className="w-4 h-4 text-amber-600" />
+                <span className="text-xs font-bold text-gray-700 uppercase">Crop Details</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <label className="text-xs font-semibold text-gray-600 uppercase">Crop Name</label>
+                  <select
+                    value={form.cropName}
+                    onChange={(e) => set('cropName', e.target.value)}
+                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                  >
+                    {MASTER_DATA.crops.map((c) => (
+                      <option key={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase">Season</label>
+                  <select
+                    value={form.season}
+                    onChange={(e) => set('season', e.target.value)}
+                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                  >
+                    <option>Rabi</option>
+                    <option>Kharif</option>
+                    <option>Zaid</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase">Yield (Qt/acre)</label>
+                  <input
+                    value={form.yield || ''}
+                    onChange={(e) => set('yield', e.target.value)}
+                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                    placeholder="e.g. 22"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase">Sowing Date</label>
+                  <input
+                    type="date"
+                    value={form.sowingDate || ''}
+                    onChange={(e) => set('sowingDate', e.target.value)}
+                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase">Harvest Date</label>
+                  <input
+                    type="date"
+                    value={form.harvestDate || ''}
+                    onChange={(e) => set('harvestDate', e.target.value)}
+                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase">Sprays Count</label>
+                  <input
+                    value={form.sprays || ''}
+                    onChange={(e) => set('sprays', e.target.value)}
+                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-xs font-semibold text-gray-600 uppercase">Fertilizer Used</label>
+                  <select
+                    value={form.fertilizer || ''}
+                    onChange={(e) => set('fertilizer', e.target.value)}
+                    className="w-full mt-1 px-3 py-3 rounded-xl border border-gray-200 bg-gray-50"
+                  >
+                    <option value="">Select Fertilizer</option>
+                    {MASTER_DATA.fertilizers.map((f) => (
+                      <option key={f}>{f}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
 
             <div className="sm:col-span-2 space-y-2">

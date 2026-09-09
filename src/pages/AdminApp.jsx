@@ -101,7 +101,7 @@ export default function AdminApp() {
               <Sprout className="w-6 h-6" />
             </div>
             <div>
-              <div className="font-bold">KisanSetu</div>
+              <div className="font-bold">AuraxFarm</div>
               <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Admin Console</div>
             </div>
           </div>
@@ -145,7 +145,7 @@ export default function AdminApp() {
           <button onClick={() => setSidebarOpen(true)} className="p-2 bg-gray-100 rounded-xl">
             <Menu className="w-5 h-5" />
           </button>
-          <div className="font-bold">KisanSetu • Admin</div>
+          <div className="font-bold">AuraxFarm • Admin</div>
           <div className={`w-2 h-2 rounded-full ${online ? 'bg-green-500' : 'bg-red-500'}`} />
         </div>
 

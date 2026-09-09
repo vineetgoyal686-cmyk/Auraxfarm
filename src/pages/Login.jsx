@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
-import { Sprout, Navigation as NavIcon, Mic, CloudUpload, ChevronRight } from 'lucide-react'
+import { Sprout, Navigation as NavIcon, Mic, CloudUpload, ChevronRight, ArrowLeft } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { translations } from '../lib/i18n.js'
 
 export default function Login() {
+  const navigate = useNavigate()
   const { isSupabaseConfigured, signIn, signUp, signInDemo } = useAuth()
   const [lang, setLang] = useState('en')
   const [role, setRole] = useState('field')
@@ -49,7 +51,7 @@ export default function Login() {
                 <Sprout className="w-7 h-7 text-green-700" />
               </div>
               <div>
-                <div className="font-bold text-xl">KisanSetu</div>
+                <div className="font-bold text-xl">AuraxFarm</div>
                 <div className="text-xs opacity-80 -mt-1">किसानसेतु • ਕਿਸਾਨਸੇਤੂ</div>
               </div>
             </div>
@@ -79,6 +81,13 @@ export default function Login() {
 
         <div className="flex-1 p-6 lg:p-12 flex items-center justify-center bg-white">
           <div className="w-full max-w-sm">
+            <button
+              onClick={() => navigate('/')}
+              className="mb-6 flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-800"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back to Home
+            </button>
+
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900">{t.login}</h2>
               <div className="flex rounded-full border p-1 bg-gray-50">

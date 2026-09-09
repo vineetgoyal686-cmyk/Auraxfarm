@@ -1,4 +1,4 @@
-# KisanSetu — Farm & Farmer Data Platform
+# AuraxFarm — Farm & Farmer Data Platform
 
 A real, working React app (not a single HTML file) with:
 
@@ -19,7 +19,7 @@ A real, working React app (not a single HTML file) with:
 You need [Node.js 18+](https://nodejs.org) installed.
 
 ```bash
-cd kisansetu-app
+cd auraxfarm-app
 npm install
 cp .env.example .env      # then fill in your Supabase keys (step 2)
 npm run dev
@@ -100,7 +100,7 @@ installable Android app takes about 15 minutes with
 npm install @capacitor/core @capacitor/android
 npm install -D @capacitor/cli
 
-npx cap init "KisanSetu" "in.kisansetu.app" --web-dir=dist
+npx cap init "AuraxFarm" "in.auraxfarm.app" --web-dir=dist
 
 npm run build          # produces the dist/ folder Capacitor will wrap
 npx cap add android

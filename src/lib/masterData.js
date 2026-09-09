@@ -2,7 +2,7 @@
 // be edited; edits are persisted to localStorage under this same key so
 // every form (New Farmer, Capture Farm, Add Crop) stays in sync.
 
-const KEY = 'kisansetu:masterData'
+const KEY = 'auraxfarm:masterData'
 
 const DEFAULTS = {
   states: ['Haryana', 'Punjab', 'Uttar Pradesh', 'Rajasthan'],
