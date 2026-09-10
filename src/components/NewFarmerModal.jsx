@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { X, User, Camera } from 'lucide-react'
 import VoiceInputButton from './VoiceInputButton.jsx'
 import { upsertRow, newLocalId } from '../lib/localStore.js'
-import { MASTER_DATA } from '../lib/masterData.js'
 import { uploadPhoto, fileToDataUrl } from '../lib/storage.js'
 
 const FIELDS = [
@@ -13,17 +12,12 @@ const FIELDS = [
   { k: 'pan', label: 'PAN (Optional)' },
   { k: 'aadhaar', label: 'Aadhaar (Optional)' },
   { k: 'kcc', label: 'Kisan Credit Card', type: 'select', opts: ['Yes', 'No'] },
-  {
-    k: 'qualification',
-    label: 'Academic Qualification',
-    type: 'select',
-    opts: ['No Formal', '5th', '10th', '12th', 'Graduate', 'Post Graduate']
-  },
+  { k: 'qualification', label: 'Academic Qualification' },
   { k: 'familyMembers', label: 'Family Members' },
   { k: 'familyIncome', label: 'Family Income (lacs)' },
-  { k: 'state', label: 'State', type: 'select', opts: MASTER_DATA.states },
-  { k: 'district', label: 'District', type: 'select', opts: MASTER_DATA.districts },
-  { k: 'village', label: 'Village', type: 'select', opts: MASTER_DATA.villages }
+  { k: 'state', label: 'State' },
+  { k: 'district', label: 'District' },
+  { k: 'village', label: 'Village' }
 ]
 
 export default function NewFarmerModal({ lang, onClose, onSaved }) {
