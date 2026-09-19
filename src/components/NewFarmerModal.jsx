@@ -18,7 +18,7 @@ function sanitizeValue(filter, value) {
 }
 
 const FIELDS = [
-  { k: 'name', label: 'Name', req: true },
+  { k: 'name', label: 'Name', req: true, filter: 'alpha' },
   { k: 'mobile', label: 'Mobile', req: true, filter: 'digits', maxLength: 10, inputMode: 'numeric' },
   { k: 'age', label: 'Age', req: true, filter: 'digits', maxLength: 2, inputMode: 'numeric' },
   { k: 'gender', label: 'Gender', type: 'select', opts: ['Male', 'Female', 'Other'], req: true },
@@ -108,8 +108,8 @@ export default function NewFarmerModal({ lang, onClose, onSaved }) {
       return
     }
     const age = parseInt(form.age, 10)
-    if (age < 15 || age > 99) {
-      alert('Age must be between 15 and 99')
+    if (age <= 15 || age > 99) {
+      alert('Age must be between 16 and 99')
       return
     }
     if (String(form.mobile || '').length !== 10) {
