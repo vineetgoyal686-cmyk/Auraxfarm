@@ -32,7 +32,7 @@ export default function VoiceInputButton({ lang = 'en', onResult }) {
     <button
       type="button"
       onClick={listening ? stop : start}
-      className={`p-2 rounded-full transition ${
+      className={`p-2 rounded-md transition ${
         listening ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-amber-100 text-amber-700 hover:scale-105'
       }`}
       title="Voice input"

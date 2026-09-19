@@ -38,6 +38,7 @@ create table if not exists farmers (
   total_farms text,
   total_farm_area text,
   total_farm_area_unit text,
+  documents jsonb default '[]'::jsonb,
   created_by uuid references auth.users (id),
   created_at timestamptz default now()
 );
@@ -45,6 +46,7 @@ create table if not exists farmers (
 alter table farmers add column if not exists total_farms text;
 alter table farmers add column if not exists total_farm_area text;
 alter table farmers add column if not exists total_farm_area_unit text;
+alter table farmers add column if not exists documents jsonb default '[]'::jsonb;
 
 -- 3. Farms
 create table if not exists farms (
@@ -104,6 +106,14 @@ as $$
   select exists (select 1 from profiles where id = auth.uid() and role = 'admin');
 $$;
 
+-- is_admin() only needs to run as the connecting (authenticated) user for
+-- RLS policies to evaluate it. Revoking from just PUBLIC isn't enough —
+-- Supabase's schema-level default privileges grant EXECUTE on every new
+-- public function directly to `anon` too, so that has to be revoked
+-- explicitly or an unauthenticated caller can still invoke it directly.
+revoke execute on function public.is_admin() from public, anon;
+grant execute on function public.is_admin() to authenticated;
+
 drop policy if exists "profiles: admins read all" on profiles;
 create policy "profiles: admins read all" on profiles for select using (public.is_admin());
 
@@ -140,7 +150,14 @@ begin
   on conflict (id) do nothing;
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
+
+-- This only ever needs to fire as a trigger (the Postgres trigger
+-- mechanism invokes it directly, independent of caller grants) — no
+-- session, public, anon or authenticated, should be able to call it by
+-- hand. (Revoking from just PUBLIC misses anon/authenticated, which get
+-- their own direct EXECUTE grant from Supabase's default privileges.)
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
@@ -148,14 +165,19 @@ create trigger on_auth_user_created
   for each row execute procedure public.handle_new_user();
 
 -- 5. Storage bucket for media (farmer photos, farm/crop images, etc.)
+-- Private bucket: the app reads files via short-lived signed URLs
+-- (see src/lib/storage.js getDisplayUrl), never via a plain public URL.
 insert into storage.buckets (id, name, public)
-values ('media', 'media', true)
-on conflict (id) do nothing;
+values ('media', 'media', false)
+on conflict (id) do update set public = false;
 
--- Anyone can view files (bucket is public so <img src> works directly).
-create policy "media bucket: public read"
+-- Only signed-in app users can list/read (and therefore sign URLs for)
+-- files in this bucket — anonymous clients get nothing.
+drop policy if exists "media bucket: public read" on storage.objects;
+drop policy if exists "media bucket: authenticated read" on storage.objects;
+create policy "media bucket: authenticated read"
   on storage.objects for select
-  using (bucket_id = 'media');
+  using (bucket_id = 'media' and auth.role() = 'authenticated');
 
 -- Any signed-in user can upload/update/delete files in this bucket.
 create policy "media bucket: authenticated upload"
@@ -169,3 +191,32 @@ create policy "media bucket: authenticated update"
 create policy "media bucket: authenticated delete"
   on storage.objects for delete
   using (bucket_id = 'media' and auth.role() = 'authenticated');
+
+-- 6. Storage bucket for farmer document attachments (Aadhaar/PAN copies,
+-- land papers, etc.) kept separate from farmer/crop photos. Private, same
+-- as `media` — these are sensitive KYC documents, read only via
+-- short-lived signed URLs (see src/lib/storage.js getDisplayUrl).
+insert into storage.buckets (id, name, public)
+values ('documents', 'documents', false)
+on conflict (id) do update set public = false;
+
+drop policy if exists "documents bucket: public read" on storage.objects;
+drop policy if exists "documents bucket: authenticated read" on storage.objects;
+create policy "documents bucket: authenticated read"
+  on storage.objects for select
+  using (bucket_id = 'documents' and auth.role() = 'authenticated');
+
+drop policy if exists "documents bucket: authenticated upload" on storage.objects;
+create policy "documents bucket: authenticated upload"
+  on storage.objects for insert
+  with check (bucket_id = 'documents' and auth.role() = 'authenticated');
+
+drop policy if exists "documents bucket: authenticated update" on storage.objects;
+create policy "documents bucket: authenticated update"
+  on storage.objects for update
+  using (bucket_id = 'documents' and auth.role() = 'authenticated');
+
+drop policy if exists "documents bucket: authenticated delete" on storage.objects;
+create policy "documents bucket: authenticated delete"
+  on storage.objects for delete
+  using (bucket_id = 'documents' and auth.role() = 'authenticated');

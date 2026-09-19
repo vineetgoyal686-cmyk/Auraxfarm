@@ -24,7 +24,14 @@ export function AuthProvider({ children }) {
       else setLoading(false)
     })
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    // Supabase fires an initial "INITIAL_SESSION" event on subscribe, often
+    // before the getSession() call above has finished reading the persisted
+    // session from storage — if that fires with session=null first, the app
+    // would flash a "logged out" state on every reload even though a valid
+    // session exists. getSession() above is the source of truth for the
+    // first load, so only react to *subsequent* real auth changes here.
+    const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
+      if (event === 'INITIAL_SESSION') return
       setSession(newSession)
       if (newSession) loadRole(newSession.user.id)
       else {
@@ -37,9 +44,14 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function loadRole(userId) {
-    const { data } = await supabase.from('profiles').select('role').eq('id', userId).single()
-    setRole(data?.role || 'field')
-    setLoading(false)
+    try {
+      const { data } = await supabase.from('profiles').select('role').eq('id', userId).single()
+      setRole(data?.role || 'field')
+    } catch {
+      setRole('field')
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function signIn(email, password) {

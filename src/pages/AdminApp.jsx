@@ -48,6 +48,7 @@ import { MASTER_DATA, saveMasterData } from '../lib/masterData.js'
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient.js'
 import { uploadPhoto, fileToDataUrl } from '../lib/storage.js'
 import FarmerDetailModal from '../components/FarmerDetailModal.jsx'
+import StorageImage from '../components/StorageImage.jsx'
 
 const NAV = [
   { k: 'dash', label: 'Dashboard', icon: LayoutDashboard },
@@ -705,7 +706,11 @@ export default function AdminApp() {
                     <div className="relative">
                       <div className="w-20 h-20 rounded-2xl bg-green-50 border-2 border-dashed border-green-200 flex items-center justify-center overflow-hidden">
                         {profile?.avatar_url ? (
-                          <img src={profile.avatar_url} className="w-full h-full object-cover" alt="" />
+                          <StorageImage
+                            src={profile.avatar_url}
+                            className="w-full h-full object-cover"
+                            fallback={<UserCircle className="w-10 h-10 text-green-400" />}
+                          />
                         ) : (
                           <UserCircle className="w-10 h-10 text-green-400" />
                         )}

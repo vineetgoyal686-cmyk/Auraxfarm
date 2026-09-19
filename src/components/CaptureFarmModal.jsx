@@ -2,6 +2,7 @@ import React, { forwardRef, useImperativeHandle, useMemo, useRef, useState } fro
 import { X, Tractor, Navigation as NavIcon, Wheat, Search, Plus, Trash2, User } from 'lucide-react'
 import { upsertRow, newLocalId } from '../lib/localStore.js'
 import { useGeo } from '../lib/useGeo.js'
+import StorageImage from './StorageImage.jsx'
 
 function uid() {
   return Math.random().toString(36).slice(2, 9)
@@ -393,7 +394,15 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                     className="w-full flex items-center gap-3 p-3 hover:bg-green-50 text-left"
                   >
                     <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center overflow-hidden shrink-0">
-                      {f.photo ? <img src={f.photo} className="w-full h-full object-cover" alt="" /> : <User className="w-4 h-4 text-green-600" />}
+                      {f.photo ? (
+                        <StorageImage
+                          src={f.photo}
+                          className="w-full h-full object-cover"
+                          fallback={<User className="w-4 h-4 text-green-600" />}
+                        />
+                      ) : (
+                        <User className="w-4 h-4 text-green-600" />
+                      )}
                     </div>
                     <div className="min-w-0">
                       <div className="font-bold text-sm truncate">{f.name}</div>
@@ -412,7 +421,11 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center overflow-hidden shrink-0">
                     {selectedFarmer?.photo ? (
-                      <img src={selectedFarmer.photo} className="w-full h-full object-cover" alt="" />
+                      <StorageImage
+                        src={selectedFarmer.photo}
+                        className="w-full h-full object-cover"
+                        fallback={<User className="w-4 h-4 text-green-600" />}
+                      />
                     ) : (
                       <User className="w-4 h-4 text-green-600" />
                     )}

@@ -1,5 +1,7 @@
 import React from 'react'
-import { X, User, MapPin, Tractor, Wheat } from 'lucide-react'
+import { X, User, MapPin, Tractor, Wheat, Paperclip, FileText } from 'lucide-react'
+import StorageImage from './StorageImage.jsx'
+import { getDisplayUrl } from '../lib/storage.js'
 
 const FARMER_FIELDS = [
   { k: 'mobile', label: 'Mobile' },
@@ -30,7 +32,11 @@ export default function FarmerDetailModal({ farmer, farms, crops, onClose }) {
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-green-100 flex items-center justify-center overflow-hidden">
               {farmer.photo ? (
-                <img src={farmer.photo} className="w-full h-full object-cover" alt="" />
+                <StorageImage
+                  src={farmer.photo}
+                  className="w-full h-full object-cover"
+                  fallback={<User className="w-6 h-6 text-green-600" />}
+                />
               ) : (
                 <User className="w-6 h-6 text-green-600" />
               )}
@@ -65,6 +71,31 @@ export default function FarmerDetailModal({ farmer, farms, crops, onClose }) {
               ))}
             </div>
           </div>
+
+          {farmer.documents?.length > 0 && (
+            <div>
+              <h4 className="text-xs font-bold uppercase text-gray-500 mb-3 flex items-center gap-2">
+                <Paperclip className="w-3.5 h-3.5" /> Documents ({farmer.documents.length})
+              </h4>
+              <div className="grid grid-cols-2 gap-2">
+                {farmer.documents.map((doc, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={async () => {
+                      const url = await getDisplayUrl('documents', doc.url)
+                      if (url) window.open(url, '_blank', 'noopener')
+                      else alert('Could not open this document right now.')
+                    }}
+                    className="flex items-center gap-2 p-2.5 rounded-xl bg-gray-50 border text-xs font-medium truncate hover:bg-green-50 text-left"
+                  >
+                    <FileText className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span className="truncate">{doc.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <h4 className="text-xs font-bold uppercase text-gray-500 mb-3 flex items-center gap-2">

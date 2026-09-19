@@ -26,6 +26,7 @@ import { useOnlineSync } from '../lib/useOnlineSync.js'
 import NewFarmerModal from '../components/NewFarmerModal.jsx'
 import CaptureFarmModal from '../components/CaptureFarmModal.jsx'
 import AddCropModal from '../components/AddCropModal.jsx'
+import StorageImage from '../components/StorageImage.jsx'
 
 const TABS = [
   { k: 'dash', icon: LayoutDashboard, labelKey: 'dashboard' },
@@ -243,7 +244,15 @@ export default function FieldApp() {
                 {farmers.slice(0, 3).map((f) => (
                   <div key={f.id} className="p-4 rounded-2xl border bg-cream flex gap-3">
                     <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center overflow-hidden">
-                      {f.photo ? <img src={f.photo} className="w-full h-full object-cover" alt="" /> : <User className="w-6 h-6 text-green-600" />}
+                      {f.photo ? (
+                        <StorageImage
+                          src={f.photo}
+                          className="w-full h-full object-cover"
+                          fallback={<User className="w-6 h-6 text-green-600" />}
+                        />
+                      ) : (
+                        <User className="w-6 h-6 text-green-600" />
+                      )}
                     </div>
                     <div className="flex-1">
                       <div className="font-bold text-sm">{f.name}</div>
@@ -290,7 +299,15 @@ export default function FieldApp() {
                 <div key={f.id} className="p-4 rounded-[20px] bg-white border shadow-sm">
                   <div className="flex gap-3">
                     <div className="w-14 h-14 rounded-2xl bg-green-50 overflow-hidden flex items-center justify-center">
-                      {f.photo ? <img src={f.photo} className="w-full h-full object-cover" alt="" /> : <User className="w-6 h-6 text-green-500" />}
+                      {f.photo ? (
+                        <StorageImage
+                          src={f.photo}
+                          className="w-full h-full object-cover"
+                          fallback={<User className="w-6 h-6 text-green-500" />}
+                        />
+                      ) : (
+                        <User className="w-6 h-6 text-green-500" />
+                      )}
                     </div>
                     <div className="flex-1">
                       <div className="font-bold">{f.name}</div>
