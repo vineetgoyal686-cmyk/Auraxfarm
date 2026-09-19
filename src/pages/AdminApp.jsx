@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import {
   Sprout,
   LayoutDashboard,
@@ -102,11 +104,19 @@ export default function AdminApp() {
       .then(({ data, error }) => {
         if (error) setUsersError(error.message)
         else {
-          const byCreated = [...(data || [])].sort(
-            (a, b) => new Date(a.created_at) - new Date(b.created_at)
+          const numberFor = new Map()
+          for (const role of ['admin', 'field']) {
+            const group = (data || [])
+              .filter((u) => (role === 'admin' ? u.role === 'admin' : u.role !== 'admin'))
+              .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+            group.forEach((u, i) => numberFor.set(u.id, i + 1))
+          }
+          setUsers(
+            (data || []).map((u) => ({
+              ...u,
+              displayId: `${u.role === 'admin' ? 'ADM' : 'FLD'}-${String(numberFor.get(u.id)).padStart(3, '0')}`
+            }))
           )
-          const numberFor = new Map(byCreated.map((u, i) => [u.id, i + 1]))
-          setUsers((data || []).map((u) => ({ ...u, displayId: `USR-${String(numberFor.get(u.id)).padStart(3, '0')}` })))
         }
         setUsersLoading(false)
       })
@@ -182,29 +192,25 @@ export default function AdminApp() {
   function exportUsersPDF() {
     setExportMenuOpen(false)
     const label = userGroup === 'admin' ? 'Administrators' : 'Field Users'
-    const rowsHtml = groupedUsers
-      .map(
-        (u, i) =>
-          `<tr><td>${i + 1}</td><td>${u.displayId}</td><td>${u.name || ''}</td><td>${u.email}</td><td>${u.role}</td><td>${
-            u.active === false ? 'Disabled' : 'Active'
-          }</td><td>${u.created_at ? new Date(u.created_at).toLocaleDateString() : ''}</td></tr>`
-      )
-      .join('')
-    const html = `<html><head><title>${label}</title><style>
-      body{font-family:Arial,sans-serif;padding:24px;color:#111}
-      h2{margin-bottom:16px}
-      table{width:100%;border-collapse:collapse}
-      th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px}
-      th{background:#f3f4f6;text-transform:uppercase;font-size:10px}
-    </style></head><body>
-      <h2>${label}</h2>
-      <table><thead><tr><th>S.No</th><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th></tr></thead><tbody>${rowsHtml}</tbody></table>
-      <script>window.onload = () => window.print()</script>
-    </body></html>`
-    const w = window.open('', '_blank')
-    if (!w) return alert('Please allow pop-ups to export as PDF.')
-    w.document.write(html)
-    w.document.close()
+    const doc = new jsPDF()
+    doc.setFontSize(14)
+    doc.text(label, 14, 16)
+    autoTable(doc, {
+      startY: 22,
+      head: [['S.No', 'ID', 'Name', 'Email', 'Role', 'Status', 'Joined']],
+      body: groupedUsers.map((u, i) => [
+        i + 1,
+        u.displayId,
+        u.name || '',
+        u.email,
+        u.role,
+        u.active === false ? 'Disabled' : 'Active',
+        u.created_at ? new Date(u.created_at).toLocaleDateString() : ''
+      ]),
+      headStyles: { fillColor: [22, 163, 74] },
+      styles: { fontSize: 9 }
+    })
+    doc.save(`${label}.pdf`)
   }
 
   async function saveUserEdit(user, { name, role }) {
