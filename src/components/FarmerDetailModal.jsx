@@ -30,8 +30,8 @@ const TABS = [
   { k: 'crop', label: 'Crop', icon: Wheat }
 ]
 
-export default function FarmerDetailModal({ farmer, farms, crops, onClose, onEdit, onFarmSaved }) {
-  const [tab, setTab] = useState('farmer')
+export default function FarmerDetailModal({ farmer, farms, crops, initialTab = 'farmer', onClose, onEdit, onFarmSaved }) {
+  const [tab, setTab] = useState(initialTab)
   const [editFarmRecord, setEditFarmRecord] = useState(null)
   const [addCropForFarmId, setAddCropForFarmId] = useState(null)
   const [editCropRecord, setEditCropRecord] = useState(null)
