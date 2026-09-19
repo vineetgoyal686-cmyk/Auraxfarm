@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { User, Camera, Paperclip, FileText, X } from 'lucide-react'
 import VoiceInputButton from './VoiceInputButton.jsx'
 import { upsertRow, newLocalId } from '../lib/localStore.js'
@@ -11,20 +11,32 @@ function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+function sanitizeValue(filter, value) {
+  if (filter === 'digits') return value.replace(/[^0-9]/g, '')
+  if (filter === 'alpha') return value.replace(/[^a-zA-Z\s]/g, '')
+  return value
+}
+
 const FIELDS = [
   { k: 'name', label: 'Name', req: true },
-  { k: 'mobile', label: 'Mobile', req: true },
-  { k: 'age', label: 'Age', req: true },
+  { k: 'mobile', label: 'Mobile', req: true, filter: 'digits', maxLength: 10, inputMode: 'numeric' },
+  { k: 'age', label: 'Age', req: true, filter: 'digits', maxLength: 2, inputMode: 'numeric' },
   { k: 'gender', label: 'Gender', type: 'select', opts: ['Male', 'Female', 'Other'], req: true },
   { k: 'pan', label: 'PAN (Optional)' },
-  { k: 'aadhaar', label: 'Aadhaar (Optional)' },
+  { k: 'aadhaar', label: 'Aadhaar (Optional)', filter: 'digits', maxLength: 12, inputMode: 'numeric' },
   { k: 'kcc', label: 'Kisan Credit Card', type: 'select', opts: ['Yes', 'No'], req: true },
   { k: 'qualification', label: 'Academic Qualification', req: true },
-  { k: 'family_members', label: 'Family Members', req: true },
-  { k: 'family_income', label: 'Family Income (lacs)', req: true },
-  { k: 'state', label: 'State', req: true },
-  { k: 'district', label: 'District', req: true },
-  { k: 'village', label: 'Village', req: true }
+  { k: 'family_members', label: 'Family Members', req: true, filter: 'digits', inputMode: 'numeric' },
+  { k: 'family_income', label: 'Family Income (lacs)', req: true, filter: 'digits', inputMode: 'numeric' },
+  { k: 'state', label: 'State', req: true, filter: 'alpha' },
+  { k: 'district', label: 'District', req: true, filter: 'alpha' },
+  { k: 'village', label: 'Village', req: true, filter: 'alpha' }
+]
+
+const PAN_PARTS = [
+  { len: 5, filter: 'alpha', placeholder: 'AAAAA', width: 'w-20' },
+  { len: 4, filter: 'digits', placeholder: '9999', width: 'w-16' },
+  { len: 1, filter: 'alpha', placeholder: 'A', width: 'w-11' }
 ]
 
 export default function NewFarmerModal({ lang, onClose, onSaved }) {
@@ -33,8 +45,30 @@ export default function NewFarmerModal({ lang, onClose, onSaved }) {
   const [photoPreview, setPhotoPreview] = useState('')
   const [docFiles, setDocFiles] = useState([])
   const [saving, setSaving] = useState(false)
+  const [panParts, setPanParts] = useState(['', '', ''])
+  const panRefs = [useRef(null), useRef(null), useRef(null)]
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
+
+  function updatePan(idx, rawValue) {
+    const { len, filter } = PAN_PARTS[idx]
+    const clean = sanitizeValue(filter, rawValue).replace(/\s/g, '').toUpperCase().slice(0, len)
+    setPanParts((parts) => {
+      const next = [...parts]
+      next[idx] = clean
+      set('pan', next.join(''))
+      return next
+    })
+    if (clean.length === len && idx < PAN_PARTS.length - 1) {
+      panRefs[idx + 1].current?.focus()
+    }
+  }
+
+  function handlePanKeyDown(idx, e) {
+    if (e.key === 'Backspace' && !panParts[idx] && idx > 0) {
+      panRefs[idx - 1].current?.focus()
+    }
+  }
 
   function handlePhotoChange(e) {
     const file = e.target.files?.[0]
@@ -71,6 +105,15 @@ export default function NewFarmerModal({ lang, onClose, onSaved }) {
     if (missing.length > 0 || !String(form.address || '').trim()) {
       const names = missing.map((f) => f.label).concat(!String(form.address || '').trim() ? ['Address'] : [])
       alert(`Please fill required fields: ${names.join(', ')}`)
+      return
+    }
+    const age = parseInt(form.age, 10)
+    if (age < 15 || age > 99) {
+      alert('Age must be between 15 and 99')
+      return
+    }
+    if (String(form.mobile || '').length !== 10) {
+      alert('Mobile number must be exactly 10 digits')
       return
     }
     setSaving(true)
@@ -156,7 +199,22 @@ export default function NewFarmerModal({ lang, onClose, onSaved }) {
                   {f.label} {f.req && <span className="text-red-500">*</span>}
                 </label>
                 <div className="flex gap-2">
-                  {f.type === 'select' ? (
+                  {f.k === 'pan' ? (
+                    <div className="flex gap-1.5">
+                      {PAN_PARTS.map((part, idx) => (
+                        <input
+                          key={idx}
+                          ref={panRefs[idx]}
+                          value={panParts[idx]}
+                          onChange={(e) => updatePan(idx, e.target.value)}
+                          onKeyDown={(e) => handlePanKeyDown(idx, e)}
+                          maxLength={part.len}
+                          placeholder={part.placeholder}
+                          className={`${part.width} px-2 py-3 rounded-md border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-green-200 outline-none text-sm text-center uppercase tracking-wider`}
+                        />
+                      ))}
+                    </div>
+                  ) : f.type === 'select' ? (
                     <select
                       value={form[f.k] || ''}
                       onChange={(e) => set(f.k, e.target.value)}
@@ -172,12 +230,19 @@ export default function NewFarmerModal({ lang, onClose, onSaved }) {
                   ) : (
                     <input
                       value={form[f.k] || ''}
-                      onChange={(e) => set(f.k, e.target.value)}
+                      onChange={(e) => set(f.k, sanitizeValue(f.filter, e.target.value).slice(0, f.maxLength))}
+                      inputMode={f.inputMode}
+                      maxLength={f.maxLength}
                       className="flex-1 px-3 py-3 rounded-md border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-green-200 outline-none text-sm"
                       placeholder={f.label}
                     />
                   )}
-                  <VoiceInputButton lang={lang} onResult={(text) => set(f.k, text)} />
+                  {f.k !== 'pan' && (
+                    <VoiceInputButton
+                      lang={lang}
+                      onResult={(text) => set(f.k, sanitizeValue(f.filter, text).slice(0, f.maxLength))}
+                    />
+                  )}
                 </div>
               </div>
             ))}
