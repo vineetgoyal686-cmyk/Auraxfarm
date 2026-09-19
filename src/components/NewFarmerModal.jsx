@@ -1,8 +1,9 @@
 import React, { useRef, useState } from 'react'
 import { User, Camera, Paperclip, FileText, X } from 'lucide-react'
 import VoiceInputButton from './VoiceInputButton.jsx'
+import StorageImage from './StorageImage.jsx'
 import { upsertRow, newLocalId } from '../lib/localStore.js'
-import { uploadPhoto, uploadDocument, fileToDataUrl } from '../lib/storage.js'
+import { uploadPhoto, uploadDocument, fileToDataUrl, getDisplayUrl } from '../lib/storage.js'
 
 function formatSize(bytes) {
   if (!bytes) return ''
@@ -39,13 +40,18 @@ const PAN_PARTS = [
   { len: 1, filter: 'alpha', placeholder: 'A', width: 'w-11' }
 ]
 
-export default function NewFarmerModal({ lang, onClose, onSaved }) {
-  const [form, setForm] = useState({})
+export default function NewFarmerModal({ lang, farmer, onClose, onSaved }) {
+  const [form, setForm] = useState(() => (farmer ? { ...farmer } : {}))
   const [photoFile, setPhotoFile] = useState(null)
   const [photoPreview, setPhotoPreview] = useState('')
+  const [photoRemoved, setPhotoRemoved] = useState(false)
   const [docFiles, setDocFiles] = useState([])
+  const [existingDocs, setExistingDocs] = useState(farmer?.documents || [])
   const [saving, setSaving] = useState(false)
-  const [panParts, setPanParts] = useState(['', '', ''])
+  const [panParts, setPanParts] = useState(() => {
+    const pan = farmer?.pan || ''
+    return [pan.slice(0, 5), pan.slice(5, 9), pan.slice(9, 10)]
+  })
   const panRefs = [useRef(null), useRef(null), useRef(null)]
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
@@ -81,6 +87,17 @@ export default function NewFarmerModal({ lang, onClose, onSaved }) {
   function removePhoto() {
     setPhotoFile(null)
     setPhotoPreview('')
+    setPhotoRemoved(true)
+  }
+
+  async function openExistingDoc(doc) {
+    const url = await getDisplayUrl('documents', doc.url)
+    if (url) window.open(url, '_blank', 'noopener')
+    else alert('Could not open this document right now.')
+  }
+
+  function removeExistingDoc(idx) {
+    setExistingDocs((docs) => docs.filter((_, i) => i !== idx))
   }
 
   function handleDocsChange(e) {
@@ -117,21 +134,21 @@ export default function NewFarmerModal({ lang, onClose, onSaved }) {
       return
     }
     setSaving(true)
-    let photo = ''
+    let photo = photoRemoved ? '' : farmer?.photo || ''
     if (photoFile) {
       photo = (await uploadPhoto(photoFile, 'farmers')) || (await fileToDataUrl(photoFile))
     }
-    const documents = []
+    const documents = [...existingDocs]
     for (const { file } of docFiles) {
       const url = (await uploadDocument(file, 'farmers')) || (await fileToDataUrl(file))
       documents.push({ name: file.name, url })
     }
     const row = {
-      id: newLocalId('FRM', 'farmers'),
+      id: farmer ? farmer.id : newLocalId('FRM', 'farmers'),
       ...form,
       photo,
       documents,
-      created_at: new Date().toISOString(),
+      created_at: farmer ? farmer.created_at : new Date().toISOString(),
       synced: false,
       pending_op: 'upsert'
     }
@@ -146,7 +163,7 @@ export default function NewFarmerModal({ lang, onClose, onSaved }) {
       <div className="shrink-0 px-3 sm:px-5 py-3 border-b flex justify-between items-center gap-2 bg-gradient-to-r from-green-50 to-amber-50">
         <h3 className="font-bold text-base sm:text-lg flex items-center gap-2 min-w-0">
           <User className="w-5 h-5 text-green-600 shrink-0" />
-          <span className="truncate">New Farmer</span>
+          <span className="truncate">{farmer ? 'Edit Farmer' : 'New Farmer'}</span>
         </h3>
         <div className="flex items-center gap-2 shrink-0">
           <button
@@ -160,7 +177,7 @@ export default function NewFarmerModal({ lang, onClose, onSaved }) {
             disabled={saving}
             className="px-3 sm:px-4 py-2 rounded-md bg-green-600 text-white text-xs sm:text-sm font-semibold shadow disabled:opacity-60"
           >
-            {saving ? 'Saving…' : 'Save Farmer'}
+            {saving ? 'Saving…' : farmer ? 'Save Changes' : 'Save Farmer'}
           </button>
         </div>
       </div>
@@ -172,10 +189,16 @@ export default function NewFarmerModal({ lang, onClose, onSaved }) {
             <div className="relative w-20 h-20 rounded-lg bg-green-50 border-2 border-dashed border-green-200 flex items-center justify-center overflow-hidden">
               {photoPreview ? (
                 <img src={photoPreview} className="w-full h-full object-cover" alt="" />
+              ) : farmer?.photo && !photoRemoved ? (
+                <StorageImage
+                  src={farmer.photo}
+                  className="w-full h-full object-cover"
+                  fallback={<Camera className="w-6 h-6 text-green-400" />}
+                />
               ) : (
                 <Camera className="w-6 h-6 text-green-400" />
               )}
-              {photoPreview && (
+              {(photoPreview || (farmer?.photo && !photoRemoved)) && (
                 <button
                   type="button"
                   onClick={removePhoto}
@@ -187,7 +210,7 @@ export default function NewFarmerModal({ lang, onClose, onSaved }) {
               )}
             </div>
             <label className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium cursor-pointer hover:bg-green-700">
-              {photoPreview ? 'Change Photo' : 'Add Photo'}
+              {photoPreview || (farmer?.photo && !photoRemoved) ? 'Change Photo' : 'Add Photo'}
               <input type="file" accept="image/*" capture="user" className="hidden" onChange={handlePhotoChange} />
             </label>
           </div>
@@ -281,10 +304,34 @@ export default function NewFarmerModal({ lang, onClose, onSaved }) {
               </label>
             </div>
 
-            {docFiles.length === 0 ? (
+            {existingDocs.length === 0 && docFiles.length === 0 ? (
               <div className="text-xs text-gray-400">No documents attached yet.</div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {existingDocs.map((doc, idx) => (
+                  <div
+                    key={`existing-${idx}`}
+                    className="flex items-center gap-2 p-2.5 rounded-md border border-gray-200 bg-gray-50"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => openExistingDoc(doc)}
+                      title="Open document"
+                      className="flex items-center gap-2 min-w-0 flex-1 text-left hover:underline"
+                    >
+                      <FileText className="w-4 h-4 text-amber-600 shrink-0" />
+                      <div className="min-w-0 text-xs font-medium truncate">{doc.name}</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeExistingDoc(idx)}
+                      title="Remove document"
+                      className="w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center shrink-0"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
                 {docFiles.map((d) => (
                   <div
                     key={d.key}

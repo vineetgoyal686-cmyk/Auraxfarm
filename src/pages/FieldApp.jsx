@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import {
   Sprout,
   LayoutDashboard,
@@ -17,7 +19,13 @@ import {
   Menu,
   X,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  LayoutGrid,
+  List,
+  Eye,
+  Download,
+  ChevronDown,
+  Pencil
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { translations } from '../lib/i18n.js'
@@ -27,6 +35,10 @@ import NewFarmerModal from '../components/NewFarmerModal.jsx'
 import CaptureFarmModal from '../components/CaptureFarmModal.jsx'
 import AddCropModal from '../components/AddCropModal.jsx'
 import StorageImage from '../components/StorageImage.jsx'
+import FarmerDetailModal from '../components/FarmerDetailModal.jsx'
+import DateRangePicker from '../components/DateRangePicker.jsx'
+import Pagination from '../components/Pagination.jsx'
+import ProfileModal from '../components/ProfileModal.jsx'
 
 const TABS = [
   { k: 'dash', icon: LayoutDashboard, labelKey: 'dashboard' },
@@ -35,8 +47,16 @@ const TABS = [
   { k: 'sync', icon: CloudUpload, labelKey: 'sync' }
 ]
 
+function formatDate(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  return `${dd}.${mm}.${d.getFullYear()}`
+}
+
 export default function FieldApp() {
-  const { signOut, isSupabaseConfigured } = useAuth()
+  const { signOut, isSupabaseConfigured, session, role } = useAuth()
   const { online, pending, lastSync, lastError, runSync, refreshPending } = useOnlineSync()
   const [lang, setLang] = useState('en')
   const [tab, setTab] = useState('dash')
@@ -49,6 +69,14 @@ export default function FieldApp() {
   const [showCaptureFarm, setShowCaptureFarm] = useState(false)
   const [addCropFor, setAddCropFor] = useState(null)
   const [query, setQuery] = useState('')
+  const [farmerView, setFarmerView] = useState('card')
+  const [dateRange, setDateRange] = useState([null, null])
+  const [viewFarmer, setViewFarmer] = useState(null)
+  const [editFarmer, setEditFarmer] = useState(null)
+  const [exportMenuOpen, setExportMenuOpen] = useState(false)
+  const [farmerPage, setFarmerPage] = useState(0)
+  const [farmerPageSize, setFarmerPageSize] = useState(10)
+  const [showProfile, setShowProfile] = useState(false)
   const t = translations[lang]
 
   function refreshAll() {
@@ -63,11 +91,87 @@ export default function FieldApp() {
     return () => clearInterval(id)
   }, [])
 
-  const filteredFarmers = farmers.filter(
-    (f) => f.name?.toLowerCase().includes(query.toLowerCase()) || f.village?.toLowerCase().includes(query.toLowerCase())
+  const [rangeStart, rangeEnd] = dateRange
+  const filteredFarmers = farmers.filter((f) => {
+    const matchesQuery =
+      f.name?.toLowerCase().includes(query.toLowerCase()) || f.village?.toLowerCase().includes(query.toLowerCase())
+    if (!matchesQuery) return false
+    if (!rangeStart || !rangeEnd) return true
+    if (!f.created_at) return false
+    const created = new Date(f.created_at)
+    const endOfDay = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), rangeEnd.getDate(), 23, 59, 59, 999)
+    return created >= rangeStart && created <= endOfDay
+  })
+
+  useEffect(() => {
+    setFarmerPage(0)
+  }, [query, dateRange, farmerPageSize])
+
+  const farmerTotalPages = Math.max(1, Math.ceil(filteredFarmers.length / farmerPageSize))
+  const farmerCurrentPage = Math.min(farmerPage, farmerTotalPages - 1)
+  const pagedFarmers = filteredFarmers.slice(
+    farmerCurrentPage * farmerPageSize,
+    farmerCurrentPage * farmerPageSize + farmerPageSize
   )
 
+  function exportFarmersCSV() {
+    setExportMenuOpen(false)
+    const header = ['S.No', 'ID', 'Name', 'Mobile', 'Age', 'Gender', 'Village', 'District', 'State', 'Status', 'Added Date']
+    const lines = filteredFarmers.map((f, i) =>
+      [
+        i + 1,
+        f.id,
+        f.name || '',
+        f.mobile || '',
+        f.age || '',
+        f.gender || '',
+        f.village || '',
+        f.district || '',
+        f.state || '',
+        f.synced ? 'Synced' : 'Pending',
+        formatDate(f.created_at)
+      ]
+        .map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`)
+        .join(',')
+    )
+    const csv = [header.join(','), ...lines].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'Farmers.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function exportFarmersPDF() {
+    setExportMenuOpen(false)
+    const doc = new jsPDF()
+    doc.setFontSize(14)
+    doc.text('Farmers', 14, 16)
+    autoTable(doc, {
+      startY: 22,
+      head: [['S.No', 'ID', 'Name', 'Mobile', 'Age/Gender', 'Village, District, State', 'Status', 'Added Date']],
+      body: filteredFarmers.map((f, i) => [
+        i + 1,
+        f.id,
+        f.name || '',
+        f.mobile || '',
+        `${f.age || '—'}y, ${f.gender || '—'}`,
+        [f.village, f.district, f.state].filter(Boolean).join(', '),
+        f.synced ? 'Synced' : 'Pending',
+        formatDate(f.created_at)
+      ]),
+      headStyles: { fillColor: [22, 163, 74] },
+      styles: { fontSize: 9 }
+    })
+    doc.save('Farmers.pdf')
+  }
+
   const currentTab = TABS.find((tabDef) => tabDef.k === tab)
+  const sidebarEmail = session?.user?.email || ''
+  const sidebarName = sidebarEmail ? sidebarEmail.split('@')[0] : role || 'Field User'
+  const sidebarInitials = sidebarName.slice(0, 2).toUpperCase()
 
   return (
     <div className="h-screen overflow-hidden bg-cream text-gray-900 flex">
@@ -149,14 +253,34 @@ export default function FieldApp() {
         </div>
 
         <div className="p-3 border-t">
-          <button
-            onClick={signOut}
-            title="Logout"
-            className={`w-full py-3 rounded-xl border font-bold flex items-center justify-center gap-2 ${collapsed ? 'lg:px-0' : ''}`}
-          >
-            <LogOut className="w-4 h-4" />
-            <span className={collapsed ? 'lg:hidden' : ''}>Logout</span>
-          </button>
+          <div className="flex items-center gap-1 rounded-xl hover:bg-gray-50">
+            <button
+              onClick={() => setShowProfile(true)}
+              title="View profile"
+              className={`flex-1 flex items-center gap-2 p-1.5 rounded-lg text-left min-w-0 ${
+                collapsed ? 'lg:justify-center' : ''
+              }`}
+            >
+              <div className="w-9 h-9 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                {sidebarInitials}
+              </div>
+              {!collapsed && (
+                <div className="min-w-0">
+                  <div className="text-sm font-bold truncate">{sidebarName}</div>
+                  <div className="text-[11px] text-gray-500 truncate">{sidebarEmail}</div>
+                </div>
+              )}
+            </button>
+            {!collapsed && (
+              <button
+                onClick={signOut}
+                title="Logout"
+                className="p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600 shrink-0"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -169,9 +293,63 @@ export default function FieldApp() {
             {currentTab && <currentTab.icon className="w-4 h-4 text-green-700" />}
             {currentTab ? t[currentTab.labelKey] : t.appName}
           </div>
+          {tab === 'farmers' && (
+            <div className="ml-auto flex items-center gap-2">
+              <div className="flex rounded-lg border bg-gray-50 p-1">
+                <button
+                  onClick={() => setFarmerView('card')}
+                  title="Card view"
+                  className={`p-1.5 rounded-md ${farmerView === 'card' ? 'bg-white shadow text-green-700' : 'text-gray-400'}`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setFarmerView('table')}
+                  title="Table view"
+                  className={`p-1.5 rounded-md ${farmerView === 'table' ? 'bg-white shadow text-green-700' : 'text-gray-400'}`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="relative">
+                <button
+                  onClick={() => setExportMenuOpen((v) => !v)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-bold text-gray-700 hover:bg-gray-50"
+                >
+                  <Download className="w-3.5 h-3.5" /> Export
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+                {exportMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setExportMenuOpen(false)} />
+                    <div className="absolute right-0 top-11 z-40 w-40 bg-white border rounded-xl shadow-lg overflow-hidden text-left">
+                      <button
+                        onClick={exportFarmersCSV}
+                        className="w-full flex items-center px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                      >
+                        As Excel (.csv)
+                      </button>
+                      <button
+                        onClick={exportFarmersPDF}
+                        className="w-full flex items-center px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                      >
+                        As PDF
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+              <button
+                onClick={() => setShowNewFarmer(true)}
+                className="px-4 py-2 rounded-xl bg-green-600 text-white font-bold flex items-center gap-2 text-sm"
+              >
+                <Plus className="w-4 h-4" /> New
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="max-w-[1100px] w-full mx-auto p-4">
+        <div className="w-full px-4 py-4">
         {!isSupabaseConfigured && (
           <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
             Running in local demo mode &mdash; entries are saved on this device only. Connect Supabase
@@ -277,62 +455,168 @@ export default function FieldApp() {
 
         {tab === 'farmers' && (
           <div className="space-y-4">
-            <div className="flex gap-3">
-              <div className="flex-1 relative">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="relative w-full sm:w-56">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search farmer, village"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border bg-white outline-none"
+                  className="w-full pl-9 pr-3 py-2 rounded-lg border bg-white outline-none text-sm"
                 />
               </div>
-              <button
-                onClick={() => setShowNewFarmer(true)}
-                className="px-5 py-3 rounded-xl bg-green-600 text-white font-bold flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" /> New
-              </button>
+              <span className="text-xs font-bold text-gray-500 shrink-0">{filteredFarmers.length} farmers</span>
+              <div className="ml-auto">
+                <DateRangePicker value={dateRange} onChange={setDateRange} />
+              </div>
             </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {filteredFarmers.map((f) => (
-                <div key={f.id} className="p-4 rounded-[20px] bg-white border shadow-sm">
-                  <div className="flex gap-3">
-                    <div className="w-14 h-14 rounded-2xl bg-green-50 overflow-hidden flex items-center justify-center">
-                      {f.photo ? (
-                        <StorageImage
-                          src={f.photo}
-                          className="w-full h-full object-cover"
-                          fallback={<User className="w-6 h-6 text-green-500" />}
-                        />
-                      ) : (
-                        <User className="w-6 h-6 text-green-500" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-bold">{f.name}</div>
-                      <div className="text-xs text-gray-600">
-                        {f.gender}, {f.age}y • {f.qualification}
+
+            {farmerView === 'card' ? (
+              <div className="rounded-lg bg-white border shadow-sm overflow-hidden">
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
+                  {pagedFarmers.map((f) => (
+                    <div key={f.id} className="p-4 rounded-lg bg-white border shadow-sm">
+                      <div className="flex gap-3">
+                        <div className="w-14 h-14 rounded-lg bg-green-50 overflow-hidden flex items-center justify-center">
+                          {f.photo ? (
+                            <StorageImage
+                              src={f.photo}
+                              className="w-full h-full object-cover"
+                              fallback={<User className="w-6 h-6 text-green-500" />}
+                            />
+                          ) : (
+                            <User className="w-6 h-6 text-green-500" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-bold">{f.name}</div>
+                          <div className="text-xs text-gray-600">
+                            {f.gender}, {f.age}y • {f.qualification}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {f.village}, {f.district}, {f.state}
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {f.village}, {f.district}, {f.state}
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        <div className="flex gap-2">
+                          <span
+                            className={`text-[10px] px-2 py-1 rounded-full font-bold ${
+                              f.synced ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                            }`}
+                          >
+                            {f.synced ? '✓ Synced' : '◍ Pending Sync'}
+                          </span>
+                          <span className="text-[10px] px-2 py-1 rounded-full bg-gray-100">{f.id}</span>
+                        </div>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => setViewFarmer(f)}
+                            title="View farmer"
+                            className="w-7 h-7 rounded-full border flex items-center justify-center text-gray-500 hover:bg-gray-100"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setEditFarmer(f)}
+                            title="Edit farmer"
+                            className="w-7 h-7 rounded-full border flex items-center justify-center text-gray-500 hover:bg-gray-100"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="mt-3 flex gap-2">
-                    <span
-                      className={`text-[10px] px-2 py-1 rounded-full font-bold ${
-                        f.synced ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                      }`}
-                    >
-                      {f.synced ? '✓ Synced' : '◍ Pending Sync'}
-                    </span>
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-gray-100">{f.id}</span>
-                  </div>
+                  ))}
+                  {filteredFarmers.length === 0 && (
+                    <div className="text-sm text-gray-400 col-span-full">No farmers match your search.</div>
+                  )}
                 </div>
-              ))}
-              {filteredFarmers.length === 0 && <div className="text-sm text-gray-400">No farmers match your search.</div>}
-            </div>
+                <Pagination
+                  page={farmerPage}
+                  setPage={setFarmerPage}
+                  pageSize={farmerPageSize}
+                  onPageSizeChange={setFarmerPageSize}
+                  totalItems={filteredFarmers.length}
+                />
+              </div>
+            ) : (
+              <div className="rounded-lg bg-white border shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[1100px] text-sm border-collapse whitespace-nowrap">
+                    <thead className="text-[11px] uppercase text-gray-500 bg-gray-50">
+                      <tr className="divide-x divide-gray-300">
+                        <th className="text-left px-4 py-3 border-b border-gray-300">ID</th>
+                        <th className="text-left px-4 border-b border-gray-300">Name</th>
+                        <th className="text-left px-4 border-b border-gray-300">Mobile</th>
+                        <th className="text-left px-4 border-b border-gray-300">Age</th>
+                        <th className="text-left px-4 border-b border-gray-300">Gender</th>
+                        <th className="text-left px-4 border-b border-gray-300">Village</th>
+                        <th className="text-left px-4 border-b border-gray-300">District</th>
+                        <th className="text-left px-4 border-b border-gray-300">State</th>
+                        <th className="text-left px-4 border-b border-gray-300">Status</th>
+                        <th className="text-left px-4 border-b border-gray-300">Added Date</th>
+                        <th className="text-right px-4 border-b border-gray-300">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pagedFarmers.map((f) => (
+                        <tr key={f.id} className="divide-x divide-gray-200 hover:bg-gray-50/60">
+                          <td className="py-3 px-4 font-mono text-xs text-gray-600 border-b border-gray-200">{f.id}</td>
+                          <td className="px-4 font-bold border-b border-gray-200">{f.name}</td>
+                          <td className="px-4 text-gray-600 border-b border-gray-200">{f.mobile || '—'}</td>
+                          <td className="px-4 text-gray-600 border-b border-gray-200">{f.age || '—'}</td>
+                          <td className="px-4 text-gray-600 border-b border-gray-200">{f.gender || '—'}</td>
+                          <td className="px-4 text-gray-600 border-b border-gray-200">{f.village || '—'}</td>
+                          <td className="px-4 text-gray-600 border-b border-gray-200">{f.district || '—'}</td>
+                          <td className="px-4 text-gray-600 border-b border-gray-200">{f.state || '—'}</td>
+                          <td className="px-4 border-b border-gray-200">
+                            <span
+                              className={`text-[10px] px-2 py-1 rounded-full font-bold whitespace-nowrap ${
+                                f.synced ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                              }`}
+                            >
+                              {f.synced ? '✓ Synced' : '◍ Pending'}
+                            </span>
+                          </td>
+                          <td className="px-4 text-gray-600 border-b border-gray-200 whitespace-nowrap">
+                            {formatDate(f.created_at)}
+                          </td>
+                          <td className="px-4 border-b border-gray-200">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => setViewFarmer(f)}
+                                title="View farmer"
+                                className="w-8 h-8 rounded-full border flex items-center justify-center text-gray-500 hover:bg-gray-100"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setEditFarmer(f)}
+                                title="Edit farmer"
+                                className="w-8 h-8 rounded-full border flex items-center justify-center text-gray-500 hover:bg-gray-100"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {filteredFarmers.length === 0 && (
+                    <p className="text-xs text-gray-400 py-4 px-4">No farmers match your search.</p>
+                  )}
+                </div>
+                <Pagination
+                  page={farmerPage}
+                  setPage={setFarmerPage}
+                  pageSize={farmerPageSize}
+                  onPageSizeChange={setFarmerPageSize}
+                  totalItems={filteredFarmers.length}
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -445,11 +729,31 @@ export default function FieldApp() {
       {showNewFarmer && (
         <NewFarmerModal lang={lang} onClose={() => setShowNewFarmer(false)} onSaved={refreshAll} />
       )}
+      {editFarmer && (
+        <NewFarmerModal
+          lang={lang}
+          farmer={editFarmer}
+          onClose={() => setEditFarmer(null)}
+          onSaved={refreshAll}
+        />
+      )}
       {showCaptureFarm && (
         <CaptureFarmModal farmers={farmers} onClose={() => setShowCaptureFarm(false)} onSaved={refreshAll} />
       )}
       {addCropFor && (
         <AddCropModal farmId={addCropFor} onClose={() => setAddCropFor(null)} onSaved={refreshAll} />
+      )}
+      {viewFarmer && (
+        <FarmerDetailModal farmer={viewFarmer} farms={farms} crops={crops} onClose={() => setViewFarmer(null)} />
+      )}
+      {showProfile && (
+        <ProfileModal
+          session={session}
+          role={role}
+          isSupabaseConfigured={isSupabaseConfigured}
+          onClose={() => setShowProfile(false)}
+          onSignOut={signOut}
+        />
       )}
     </div>
   )
