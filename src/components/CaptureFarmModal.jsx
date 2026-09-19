@@ -4,6 +4,7 @@ import { upsertRow, newTempId, displayId } from '../lib/localStore.js'
 import { useGeo } from '../lib/useGeo.js'
 import StorageImage from './StorageImage.jsx'
 import { AREA_UNITS } from '../lib/units.js'
+import { notify } from '../lib/notify.js'
 import AddCropModal from './AddCropModal.jsx'
 
 function uid() {
@@ -75,7 +76,31 @@ const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove, initial
 
   function addCrop() {
     if (!cropDraft.name) {
-      alert('Enter a crop name')
+      notify('Enter a crop name')
+      return
+    }
+    if (!cropDraft.season) {
+      notify('Select a season')
+      return
+    }
+    if (!cropDraft.yield) {
+      notify('Enter the yield')
+      return
+    }
+    if (!cropDraft.sowingDate) {
+      notify('Enter the sowing date')
+      return
+    }
+    if (!cropDraft.harvestDate) {
+      notify('Enter the harvest date')
+      return
+    }
+    if (!cropDraft.sprays) {
+      notify('Enter the sprays count')
+      return
+    }
+    if (!cropDraft.fertilizer) {
+      notify('Enter the fertilizer used')
       return
     }
     setCrops((c) => [...c, { ...cropDraft, key: uid() }])
@@ -107,19 +132,25 @@ const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove, initial
           {initialFarm ? 'Land Area (already captured)' : `Land Area #${index + 1}`}
         </span>
         {!initialFarm && (
-          <button onClick={onRemove} className="p-1.5 rounded-full hover:bg-red-50 text-red-500" title="Remove this land area">
-            <Trash2 className="w-4 h-4" />
+          <button
+            onClick={onRemove}
+            className="px-3 py-1.5 rounded-full border border-red-200 bg-white text-red-600 text-xs font-bold flex items-center gap-1 hover:bg-red-50"
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Cancel
           </button>
         )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="space-y-1 min-w-0">
-          <label className="text-xs font-semibold text-gray-600 uppercase">Land Area</label>
+          <label className="text-xs font-semibold text-gray-600 uppercase">
+            Land Area <span className="text-red-500">*</span>
+          </label>
           <div className="flex flex-wrap gap-2">
             <input
               value={area}
-              onChange={(e) => setArea(e.target.value)}
+              onChange={(e) => setArea(e.target.value.replace(/[^0-9.]/g, ''))}
+              inputMode="decimal"
               placeholder="e.g. 2.5"
               className="flex-1 min-w-[100px] px-3 py-3 rounded-xl border border-gray-200 bg-white"
             />
@@ -136,7 +167,9 @@ const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove, initial
         </div>
 
         <div className="space-y-1 min-w-0">
-          <label className="text-xs font-semibold text-gray-600 uppercase">Topography</label>
+          <label className="text-xs font-semibold text-gray-600 uppercase">
+            Topography <span className="text-red-500">*</span>
+          </label>
           <select
             value={topography}
             onChange={(e) => setTopography(e.target.value)}
@@ -184,7 +217,9 @@ const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove, initial
         </div>
 
         <div className="sm:col-span-2 space-y-2">
-          <label className="text-xs font-semibold text-gray-600 uppercase">GPS Tag</label>
+          <label className="text-xs font-semibold text-gray-600 uppercase">
+            GPS Tag <span className="text-red-500">*</span>
+          </label>
           <div className="flex gap-2">
             <button
               type="button"
@@ -207,7 +242,7 @@ const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove, initial
         <div className="pt-3 border-t border-green-100 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase text-gray-700 flex items-center gap-1.5">
-              <Wheat className="w-3.5 h-3.5 text-amber-600" /> Crops in this land area ({crops.length})
+              <Wheat className="w-3.5 h-3.5 text-amber-600" /> Crops in this land area ({crops.length}) <span className="text-red-500">*</span>
             </span>
             {!showCropForm && (
               <button
@@ -235,7 +270,9 @@ const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove, initial
           {showCropForm && (
             <div className="p-3 rounded-xl bg-white border grid grid-cols-2 gap-2">
               <div className="col-span-2">
-                <label className="text-[10px] font-bold uppercase text-gray-500">Crop Name</label>
+                <label className="text-[10px] font-bold uppercase text-gray-500">
+                  Crop Name <span className="text-red-500">*</span>
+                </label>
                 <input
                   value={cropDraft.name || ''}
                   onChange={(e) => setCrop('name', e.target.value)}
@@ -243,7 +280,9 @@ const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove, initial
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold uppercase text-gray-500">Season</label>
+                <label className="text-[10px] font-bold uppercase text-gray-500">
+                  Season <span className="text-red-500">*</span>
+                </label>
                 <select
                   value={cropDraft.season || ''}
                   onChange={(e) => setCrop('season', e.target.value)}
@@ -256,7 +295,9 @@ const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove, initial
                 </select>
               </div>
               <div>
-                <label className="text-[10px] font-bold uppercase text-gray-500">Yield (Qt/acre)</label>
+                <label className="text-[10px] font-bold uppercase text-gray-500">
+                  Yield (Qt/acre) <span className="text-red-500">*</span>
+                </label>
                 <input
                   value={cropDraft.yield || ''}
                   onChange={(e) => setCrop('yield', e.target.value)}
@@ -264,7 +305,9 @@ const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove, initial
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold uppercase text-gray-500">Sowing Date</label>
+                <label className="text-[10px] font-bold uppercase text-gray-500">
+                  Sowing Date <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="date"
                   value={cropDraft.sowingDate || ''}
@@ -273,7 +316,9 @@ const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove, initial
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold uppercase text-gray-500">Harvest Date</label>
+                <label className="text-[10px] font-bold uppercase text-gray-500">
+                  Harvest Date <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="date"
                   value={cropDraft.harvestDate || ''}
@@ -282,7 +327,9 @@ const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove, initial
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold uppercase text-gray-500">Sprays Count</label>
+                <label className="text-[10px] font-bold uppercase text-gray-500">
+                  Sprays Count <span className="text-red-500">*</span>
+                </label>
                 <input
                   value={cropDraft.sprays || ''}
                   onChange={(e) => setCrop('sprays', e.target.value)}
@@ -290,7 +337,9 @@ const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove, initial
                 />
               </div>
               <div className="col-span-2">
-                <label className="text-[10px] font-bold uppercase text-gray-500">Fertilizer Used</label>
+                <label className="text-[10px] font-bold uppercase text-gray-500">
+                  Fertilizer Used <span className="text-red-500">*</span>
+                </label>
                 <input
                   value={cropDraft.fertilizer || ''}
                   onChange={(e) => setCrop('fertilizer', e.target.value)}
@@ -306,9 +355,9 @@ const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove, initial
                     setShowCropForm(false)
                     setCropDraft({})
                   }}
-                  className="px-4 py-2.5 rounded-xl border text-sm font-bold"
+                  className="px-4 py-2.5 rounded-xl border border-red-200 bg-white text-red-600 text-sm font-bold flex items-center gap-1 hover:bg-red-50"
                 >
-                  Done
+                  <Trash2 className="w-3.5 h-3.5" /> Cancel
                 </button>
               </div>
             </div>
@@ -379,7 +428,7 @@ export default function CaptureFarmModal({ farmers, farms = [], crops = [], init
 
   function saveTotalFarms() {
     if (!totalFarms) {
-      alert('Enter the total number of land areas first.')
+      notify('Enter the total number of land areas first.')
       return
     }
     setConfirmedTotalFarms(totalFarms)
@@ -396,11 +445,11 @@ export default function CaptureFarmModal({ farmers, farms = [], crops = [], init
   function addFarmArea() {
     const cap = parseInt(confirmedTotalFarms, 10) || 0
     if (!confirmedTotalFarms) {
-      alert('Enter Total Land and tap Save before adding land areas.')
+      notify('Enter Total Land and tap Save before adding land areas.')
       return
     }
     if (farmAreaKeys.length >= cap) {
-      alert(`Total Land is set to ${cap} — you can't add more than that. Increase Total Land above and tap Save first.`)
+      notify(`Total Land is set to ${cap} — you can't add more than that. Increase Total Land above and tap Save first.`)
       return
     }
     setFarmAreaKeys((keys) => [...keys, uid()])
@@ -418,16 +467,42 @@ export default function CaptureFarmModal({ farmers, farms = [], crops = [], init
 
   function handleSaveAll() {
     if (!farmerId) {
-      alert('Select a farmer to link this land to.')
+      notify('Select a farmer to link this land to.')
       return
     }
     if (!confirmedTotalFarms) {
-      alert('Enter Total Land and tap Save first.')
+      notify('Enter Total Land and tap Save first.')
       return
     }
     if (farmAreaKeys.length === 0) {
-      alert('Add at least one land area.')
+      notify('Add at least one land area.')
       return
+    }
+
+    const snapshots = []
+    for (let i = 0; i < farmAreaKeys.length; i++) {
+      const key = farmAreaKeys[i]
+      const card = cardRefs.current[key]
+      if (!card) continue
+      const snap = card.getSnapshot()
+      const label = `Land Area #${i + 1}`
+      if (!snap.area) {
+        notify(`${label}: enter the land area size before saving.`)
+        return
+      }
+      if (!snap.geo) {
+        notify(`${label}: capture GPS before saving.`)
+        return
+      }
+      if (!snap.topography) {
+        notify(`${label}: select the topography before saving.`)
+        return
+      }
+      if (!snap.crops || snap.crops.length === 0) {
+        notify(`${label}: add at least one crop before saving.`)
+        return
+      }
+      snapshots.push({ key, snap })
     }
 
     if (selectedFarmer) {
@@ -439,13 +514,7 @@ export default function CaptureFarmModal({ farmers, farms = [], crops = [], init
       })
     }
 
-    let savedFarms = 0
-    for (const key of farmAreaKeys) {
-      const card = cardRefs.current[key]
-      if (!card) continue
-      const snap = card.getSnapshot()
-      if (!snap.area) continue
-
+    for (const { snap } of snapshots) {
       const isExisting = !!snap.farmId
       const farmId = snap.farmId || newTempId('LAND')
       upsertRow('farms', {
@@ -464,7 +533,6 @@ export default function CaptureFarmModal({ farmers, farms = [], crops = [], init
         synced: false,
         pending_op: 'upsert'
       })
-      savedFarms++
 
       for (const crop of snap.crops) {
         if (crop.existingId) continue // already saved earlier — nothing changed here
@@ -483,11 +551,6 @@ export default function CaptureFarmModal({ farmers, farms = [], crops = [], init
           pending_op: 'upsert'
         })
       }
-    }
-
-    if (savedFarms === 0) {
-      alert('Fill in the land area (at least Land Area size) before saving.')
-      return
     }
 
     onSaved()
@@ -628,12 +691,16 @@ export default function CaptureFarmModal({ farmers, farms = [], crops = [], init
                 )}
               </div>
 
-              {confirmedTotalFarms && farmAreaKeys.length === 0 && (
+              {confirmedTotalFarms && (
                 <button
                   onClick={addFarmArea}
-                  className="w-full py-3 rounded-xl bg-green-600 text-white font-bold flex items-center justify-center gap-2"
+                  className={
+                    farmAreaKeys.length === 0
+                      ? 'w-full py-3 rounded-xl bg-green-600 text-white font-bold flex items-center justify-center gap-2'
+                      : 'w-full py-2.5 rounded-xl border-2 border-dashed border-green-300 text-green-700 font-bold flex items-center justify-center gap-2'
+                  }
                 >
-                  <Plus className="w-4 h-4" /> Add Land Area
+                  <Plus className="w-4 h-4" /> {farmAreaKeys.length === 0 ? 'Add Land Area' : 'Add Another Land Area'}
                 </button>
               )}
 
@@ -649,15 +716,6 @@ export default function CaptureFarmModal({ farmers, farms = [], crops = [], init
                   />
                 ))}
               </div>
-
-              {farmAreaKeys.length > 0 && (
-                <button
-                  onClick={addFarmArea}
-                  className="w-full py-2.5 rounded-xl border-2 border-dashed border-green-300 text-green-700 font-bold flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-4 h-4" /> Add Another Land Area
-                </button>
-              )}
             </>
           )}
           </div>

@@ -5,6 +5,7 @@ import Landing from './pages/Landing.jsx'
 import Login from './pages/Login.jsx'
 import FieldApp from './pages/FieldApp.jsx'
 import AdminApp from './pages/AdminApp.jsx'
+import NotifyHost from './components/NotifyHost.jsx'
 import { pullAll } from './lib/sync.js'
 
 export default function App() {
@@ -23,22 +24,25 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={isAuthenticated ? <Navigate to="/app" replace /> : <Landing />} />
-      <Route path="/login" element={isAuthenticated ? <Navigate to="/app" replace /> : <Login />} />
-      <Route
-        path="/app/*"
-        element={
-          !isAuthenticated ? (
-            <Navigate to="/login" replace />
-          ) : role === 'admin' ? (
-            <AdminApp />
-          ) : (
-            <FieldApp />
-          )
-        }
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <NotifyHost />
+      <Routes>
+        <Route path="/" element={isAuthenticated ? <Navigate to="/app" replace /> : <Landing />} />
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/app" replace /> : <Login />} />
+        <Route
+          path="/app/*"
+          element={
+            !isAuthenticated ? (
+              <Navigate to="/login" replace />
+            ) : role === 'admin' ? (
+              <AdminApp />
+            ) : (
+              <FieldApp />
+            )
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   )
 }

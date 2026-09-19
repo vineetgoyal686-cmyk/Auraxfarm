@@ -3,6 +3,7 @@ import { X, User, MapPin, Tractor, Wheat, Paperclip, FileText, Pencil, Plus } fr
 import StorageImage from './StorageImage.jsx'
 import { getDisplayUrl } from '../lib/storage.js'
 import { displayId, upsertRow } from '../lib/localStore.js'
+import { notify } from '../lib/notify.js'
 import EditFarmModal from './EditFarmModal.jsx'
 import AddCropModal from './AddCropModal.jsx'
 import CaptureFarmModal from './CaptureFarmModal.jsx'
@@ -40,7 +41,7 @@ export default function FarmerDetailModal({ farmer, farms, crops, onClose, onEdi
 
   function saveTotalLand() {
     if (!totalLandInput) {
-      alert('Enter the total number of land parcels first.')
+      notify('Enter the total number of land parcels first.')
       return
     }
     upsertRow('farmers', { ...farmer, total_farms: totalLandInput, synced: false, pending_op: 'upsert' })
@@ -68,7 +69,7 @@ export default function FarmerDetailModal({ farmer, farms, crops, onClose, onEdi
   async function openDoc(doc) {
     const url = await getDisplayUrl('documents', doc.url)
     if (url) window.open(url, '_blank', 'noopener')
-    else alert('Could not open this document right now.')
+    else notify('Could not open this document right now.')
   }
 
   return (

@@ -47,6 +47,7 @@ import { useOnlineSync } from '../lib/useOnlineSync.js'
 import { MASTER_DATA, saveMasterData } from '../lib/masterData.js'
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient.js'
 import { uploadPhoto, fileToDataUrl } from '../lib/storage.js'
+import { notify, confirmDialog } from '../lib/notify.js'
 import FarmerDetailModal from '../components/FarmerDetailModal.jsx'
 import StorageImage from '../components/StorageImage.jsx'
 
@@ -152,14 +153,17 @@ export default function AdminApp() {
 
   async function setUserActive(user, active) {
     const { error } = await supabase.from('profiles').update({ active }).eq('id', user.id)
-    if (error) return alert('Could not update user: ' + error.message)
+    if (error) return notify('Could not update user: ' + error.message)
     loadUsers()
   }
 
   async function deleteUserProfile(user) {
-    if (!confirm(`Remove ${user.email} from the app? Their login account isn't deleted (only an admin can do that from Supabase directly), but they'll lose access to farmer/farm/crop data.`)) return
+    const ok = await confirmDialog(
+      `Remove ${user.email} from the app? Their login account isn't deleted (only an admin can do that from Supabase directly), but they'll lose access to farmer/farm/crop data.`
+    )
+    if (!ok) return
     const { error } = await supabase.from('profiles').delete().eq('id', user.id)
-    if (error) return alert('Could not delete user: ' + error.message)
+    if (error) return notify('Could not delete user: ' + error.message)
     loadUsers()
   }
 
@@ -216,7 +220,7 @@ export default function AdminApp() {
 
   async function saveUserEdit(user, { name, role }) {
     const { error } = await supabase.from('profiles').update({ name, role }).eq('id', user.id)
-    if (error) return alert('Could not update user: ' + error.message)
+    if (error) return notify('Could not update user: ' + error.message)
     setEditingUser(null)
     loadUsers()
   }

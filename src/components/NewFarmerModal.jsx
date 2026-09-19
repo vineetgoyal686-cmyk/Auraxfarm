@@ -4,6 +4,7 @@ import VoiceInputButton from './VoiceInputButton.jsx'
 import StorageImage from './StorageImage.jsx'
 import { upsertRow, newTempId } from '../lib/localStore.js'
 import { uploadPhoto, uploadDocument, fileToDataUrl, getDisplayUrl } from '../lib/storage.js'
+import { notify } from '../lib/notify.js'
 
 function formatSize(bytes) {
   if (!bytes) return ''
@@ -93,7 +94,7 @@ export default function NewFarmerModal({ lang, farmer, onClose, onSaved }) {
   async function openExistingDoc(doc) {
     const url = await getDisplayUrl('documents', doc.url)
     if (url) window.open(url, '_blank', 'noopener')
-    else alert('Could not open this document right now.')
+    else notify('Could not open this document right now.')
   }
 
   function removeExistingDoc(idx) {
@@ -121,16 +122,16 @@ export default function NewFarmerModal({ lang, farmer, onClose, onSaved }) {
     const missing = FIELDS.filter((f) => f.req && !String(form[f.k] || '').trim())
     if (missing.length > 0 || !String(form.address || '').trim()) {
       const names = missing.map((f) => f.label).concat(!String(form.address || '').trim() ? ['Address'] : [])
-      alert(`Please fill required fields: ${names.join(', ')}`)
+      notify(`Please fill required fields: ${names.join(', ')}`)
       return
     }
     const age = parseInt(form.age, 10)
     if (age <= 15 || age > 99) {
-      alert('Age must be between 16 and 99')
+      notify('Age must be between 16 and 99')
       return
     }
     if (String(form.mobile || '').length !== 10) {
-      alert('Mobile number must be exactly 10 digits')
+      notify('Mobile number must be exactly 10 digits')
       return
     }
     setSaving(true)

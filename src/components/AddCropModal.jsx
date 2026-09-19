@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { X, Wheat } from 'lucide-react'
 import { upsertRow, newTempId } from '../lib/localStore.js'
+import { notify } from '../lib/notify.js'
 
 export default function AddCropModal({ farmId, crop, onClose, onSaved }) {
   const [form, setForm] = useState(() =>
@@ -20,7 +21,7 @@ export default function AddCropModal({ farmId, crop, onClose, onSaved }) {
 
   function handleSave() {
     if (!form.name) {
-      alert('Enter a crop name')
+      notify('Enter a crop name')
       return
     }
     const row = {

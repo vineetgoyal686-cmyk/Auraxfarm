@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { Mic, MicOff } from 'lucide-react'
+import { notify } from '../lib/notify.js'
 
 const LANG_MAP = { en: 'en-IN', hi: 'hi-IN', pa: 'pa-IN' }
 
@@ -10,7 +11,7 @@ export default function VoiceInputButton({ lang = 'en', onResult }) {
   function start() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SpeechRecognition) {
-      alert('Voice input is not supported in this browser.')
+      notify('Voice input is not supported in this browser.')
       return
     }
     const rec = new SpeechRecognition()
