@@ -56,13 +56,20 @@ export function replaceTable(table, rows) {
   writeTable(table, rows)
 }
 
-export function newLocalId(prefix, table) {
-  const rows = table ? readTable(table) : []
-  let max = 0
-  for (const r of rows) {
-    if (typeof r.id !== 'string' || !r.id.startsWith(prefix + '-')) continue
-    const n = parseInt(r.id.slice(prefix.length + 1), 10)
-    if (!isNaN(n) && n > max) max = n
-  }
-  return `${prefix}-${max + 1}`
+// A placeholder id used only until a record's very first sync. Two
+// devices offline at once will never collide on this the way they could
+// with a locally-counted sequential id, since it's never treated as the
+// real id — the server assigns the permanent one at insert time (see
+// sync.js) and every local reference gets remapped once that happens.
+export function newTempId(prefix) {
+  return `${prefix}-LOCAL-${Date.now()}-${Math.floor(Math.random() * 1e6)}`
+}
+
+export function isTempId(id) {
+  return typeof id === 'string' && id.includes('-LOCAL-')
+}
+
+// Friendly label for an id that might still be a pre-sync placeholder.
+export function displayId(id) {
+  return isTempId(id) ? 'Pending sync…' : id
 }

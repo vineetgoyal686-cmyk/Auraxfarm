@@ -1,38 +1,74 @@
 import React, { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react'
-import { X, Tractor, Navigation as NavIcon, Wheat, Search, Plus, Trash2, User } from 'lucide-react'
-import { upsertRow, newLocalId } from '../lib/localStore.js'
+import { Tractor, Navigation as NavIcon, Wheat, Search, Plus, Trash2, User, Pencil } from 'lucide-react'
+import { upsertRow, newTempId, displayId } from '../lib/localStore.js'
 import { useGeo } from '../lib/useGeo.js'
 import StorageImage from './StorageImage.jsx'
+import { AREA_UNITS } from '../lib/units.js'
+import AddCropModal from './AddCropModal.jsx'
 
 function uid() {
   return Math.random().toString(36).slice(2, 9)
 }
 
-const CropRow = ({ crop, onRemove }) => (
-  <div className="p-2.5 rounded-xl bg-cream border flex justify-between items-center text-xs">
-    <div>
-      <span className="font-bold">{crop.name}</span>
-      {crop.season && <span className="text-gray-500"> • {crop.season}</span>}
-      {crop.yield && <span className="text-gray-500"> • {crop.yield} Qt</span>}
+const CropRow = ({ crop, onRemove, onEdit }) => (
+  <div className="p-3 rounded-xl bg-cream border text-xs space-y-2">
+    <div className="flex items-center justify-between">
+      <div className="font-bold flex items-center gap-1.5">
+        <Wheat className="w-3.5 h-3.5 text-amber-600" />
+        {crop.name} {crop.season && <span className="text-gray-500 font-normal">({crop.season})</span>}
+      </div>
+      <div className="flex items-center gap-1 shrink-0">
+        {crop.existingId && (
+          <button
+            onClick={onEdit}
+            title="Edit crop"
+            className="w-6 h-6 rounded-full border bg-white flex items-center justify-center text-gray-500 hover:bg-gray-100"
+          >
+            <Pencil className="w-3 h-3" />
+          </button>
+        )}
+        {!crop.existingId && (
+          <button onClick={onRemove} className="p-1 rounded-full hover:bg-red-50 text-red-500">
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
     </div>
-    <button onClick={onRemove} className="p-1 rounded-full hover:bg-red-50 text-red-500">
-      <Trash2 className="w-3.5 h-3.5" />
-    </button>
+    <div className="grid grid-cols-2 gap-1 text-gray-600">
+      <div>Sowing: {crop.sowingDate || '—'}</div>
+      <div>Harvest: {crop.harvestDate || '—'}</div>
+      <div>Yield: {crop.yield || '—'}</div>
+      <div>Sprays: {crop.sprays || '—'}</div>
+      <div className="col-span-2">Fertilizer: {crop.fertilizer || '—'}</div>
+    </div>
   </div>
 )
 
-const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove }, ref) {
-  const [title] = useState('Owner')
-  const [area, setArea] = useState('')
-  const [areaUnit, setAreaUnit] = useState('Acres')
-  const [topography, setTopography] = useState('Plain')
-  const [irrigation, setIrrigation] = useState('50')
-  const [tractor, setTractor] = useState(false)
-  const [hireLabour, setHireLabour] = useState(false)
-  const [tubeWell, setTubeWell] = useState(false)
+const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove, initialFarm, initialCrops = [] }, ref) {
+  const [editCropRecord, setEditCropRecord] = useState(null)
+  const [title] = useState(initialFarm?.title || 'Owner')
+  const [area, setArea] = useState(initialFarm?.area || '')
+  const [areaUnit, setAreaUnit] = useState(initialFarm?.area_unit || 'Acres')
+  const [topography, setTopography] = useState(initialFarm?.topography || 'Plain')
+  const [irrigation, setIrrigation] = useState(initialFarm?.irrigation || '50')
+  const [tractor, setTractor] = useState(!!initialFarm?.tractor)
+  const [hireLabour, setHireLabour] = useState(!!initialFarm?.hire_labour)
+  const [tubeWell, setTubeWell] = useState(!!initialFarm?.tube_well)
   const { position, error, capture } = useGeo()
 
-  const [crops, setCrops] = useState([])
+  const [crops, setCrops] = useState(() =>
+    (initialCrops || []).map((c) => ({
+      existingId: c.id,
+      name: c.name,
+      season: c.season,
+      yield: c.yield,
+      sowingDate: c.sowing_date,
+      harvestDate: c.harvest_date,
+      sprays: c.sprays,
+      fertilizer: c.fertilizer,
+      key: c.id
+    }))
+  )
   const [showCropForm, setShowCropForm] = useState(false)
   const [cropDraft, setCropDraft] = useState({})
   const setCrop = (k, v) => setCropDraft((c) => ({ ...c, [k]: v }))
@@ -46,41 +82,60 @@ const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove }, ref) 
     setCropDraft({})
   }
 
+  const geo = position || (initialFarm?.geo_tag ? { lat: initialFarm.geo_tag.split(',')[0], lng: initialFarm.geo_tag.split(',')[1] } : null)
+
   useImperativeHandle(ref, () => ({
-    getSnapshot: () => ({ title, area, areaUnit, topography, irrigation, tractor, hireLabour, tubeWell, geo: position, crops })
+    getSnapshot: () => ({
+      farmId: initialFarm?.id || null,
+      title,
+      area,
+      areaUnit,
+      topography,
+      irrigation,
+      tractor,
+      hireLabour,
+      tubeWell,
+      geo,
+      crops
+    })
   }))
 
   return (
     <div className="p-4 rounded-2xl border-2 border-green-100 bg-green-50/30 space-y-4">
       <div className="flex justify-between items-center">
-        <span className="text-xs font-bold uppercase text-green-700">Farm Area #{index + 1}</span>
-        <button onClick={onRemove} className="p-1.5 rounded-full hover:bg-red-50 text-red-500" title="Remove this farm area">
-          <Trash2 className="w-4 h-4" />
-        </button>
+        <span className="text-xs font-bold uppercase text-green-700">
+          {initialFarm ? 'Land Area (already captured)' : `Land Area #${index + 1}`}
+        </span>
+        {!initialFarm && (
+          <button onClick={onRemove} className="p-1.5 rounded-full hover:bg-red-50 text-red-500" title="Remove this land area">
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-gray-600 uppercase">Farm Area</label>
-          <div className="flex gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="space-y-1 min-w-0">
+          <label className="text-xs font-semibold text-gray-600 uppercase">Land Area</label>
+          <div className="flex flex-wrap gap-2">
             <input
               value={area}
               onChange={(e) => setArea(e.target.value)}
               placeholder="e.g. 2.5"
-              className="flex-1 px-3 py-3 rounded-xl border border-gray-200 bg-white"
+              className="flex-1 min-w-[100px] px-3 py-3 rounded-xl border border-gray-200 bg-white"
             />
             <select
               value={areaUnit}
               onChange={(e) => setAreaUnit(e.target.value)}
               className="w-28 px-3 py-3 rounded-xl border border-gray-200 bg-white text-sm font-bold"
             >
-              <option>Acres</option>
-              <option>Bigha</option>
+              {AREA_UNITS.map((u) => (
+                <option key={u}>{u}</option>
+              ))}
             </select>
           </div>
         </div>
 
-        <div className="space-y-1">
+        <div className="space-y-1 min-w-0">
           <label className="text-xs font-semibold text-gray-600 uppercase">Topography</label>
           <select
             value={topography}
@@ -138,9 +193,9 @@ const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove }, ref) 
             >
               <NavIcon className="w-4 h-4" /> Capture GPS
             </button>
-            {position && (
+            {geo && (
               <div className="flex-1 p-2 rounded-xl bg-green-50 border border-green-200 text-xs font-mono flex items-center">
-                {position.lat}, {position.lng}
+                {geo.lat}, {geo.lng}
               </div>
             )}
           </div>
@@ -152,7 +207,7 @@ const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove }, ref) 
         <div className="pt-3 border-t border-green-100 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase text-gray-700 flex items-center gap-1.5">
-              <Wheat className="w-3.5 h-3.5 text-amber-600" /> Crops in this farm area ({crops.length})
+              <Wheat className="w-3.5 h-3.5 text-amber-600" /> Crops in this land area ({crops.length})
             </span>
             {!showCropForm && (
               <button
@@ -167,7 +222,12 @@ const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove }, ref) 
           {crops.length > 0 && (
             <div className="space-y-1.5">
               {crops.map((c) => (
-                <CropRow key={c.key} crop={c} onRemove={() => setCrops((list) => list.filter((x) => x.key !== c.key))} />
+                <CropRow
+                  key={c.key}
+                  crop={c}
+                  onRemove={() => setCrops((list) => list.filter((x) => x.key !== c.key))}
+                  onEdit={() => setEditCropRecord(initialCrops.find((ic) => ic.id === c.existingId))}
+                />
               ))}
             </div>
           )}
@@ -255,17 +315,49 @@ const FarmAreaCard = forwardRef(function FarmAreaCard({ index, onRemove }, ref) 
           )}
         </div>
       )}
+
+      {editCropRecord && (
+        <AddCropModal
+          crop={editCropRecord}
+          onClose={() => setEditCropRecord(null)}
+          onSaved={(row) => {
+            setCrops((list) =>
+              list.map((c) =>
+                c.existingId === row.id
+                  ? {
+                      ...c,
+                      name: row.name,
+                      season: row.season,
+                      yield: row.yield,
+                      sowingDate: row.sowing_date,
+                      harvestDate: row.harvest_date,
+                      sprays: row.sprays,
+                      fertilizer: row.fertilizer
+                    }
+                  : c
+              )
+            )
+          }}
+        />
+      )}
     </div>
   )
 })
 
-export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
+export default function CaptureFarmModal({ farmers, farms = [], crops = [], initialFarmerId, onClose, onSaved }) {
   const [farmerSearch, setFarmerSearch] = useState('')
-  const [farmerId, setFarmerId] = useState('')
-  const [totalFarms, setTotalFarms] = useState('')
-  const [totalFarmArea, setTotalFarmArea] = useState('')
-  const [totalFarmAreaUnit, setTotalFarmAreaUnit] = useState('Acres')
-  const [farmAreaKeys, setFarmAreaKeys] = useState([])
+  const [farmerId, setFarmerId] = useState(initialFarmerId || '')
+  const [totalFarms, setTotalFarms] = useState(() => farmers.find((f) => f.id === initialFarmerId)?.total_farms || '')
+  const [confirmedTotalFarms, setConfirmedTotalFarms] = useState(
+    () => farmers.find((f) => f.id === initialFarmerId)?.total_farms || ''
+  )
+  const existingFarmsFor = (fid) => farms.filter((f) => f.farmer_id === fid)
+  const [farmAreaKeys, setFarmAreaKeys] = useState(() => existingFarmsFor(initialFarmerId).map((f) => f.id))
+  const [farmMeta, setFarmMeta] = useState(() => {
+    const map = {}
+    for (const f of existingFarmsFor(initialFarmerId)) map[f.id] = f
+    return map
+  })
   const cardRefs = useRef({})
 
   const filteredFarmers = useMemo(() => {
@@ -276,31 +368,72 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
 
   const selectedFarmer = farmers.find((f) => f.id === farmerId)
 
+  function loadExistingFarms(fid) {
+    const existing = existingFarmsFor(fid)
+    setFarmAreaKeys(existing.map((f) => f.id))
+    const map = {}
+    for (const f of existing) map[f.id] = f
+    setFarmMeta(map)
+    cardRefs.current = {}
+  }
+
+  function saveTotalFarms() {
+    if (!totalFarms) {
+      alert('Enter the total number of land areas first.')
+      return
+    }
+    setConfirmedTotalFarms(totalFarms)
+    if (selectedFarmer) {
+      upsertRow('farmers', {
+        ...selectedFarmer,
+        total_farms: totalFarms,
+        synced: false,
+        pending_op: 'upsert'
+      })
+    }
+  }
+
   function addFarmArea() {
+    const cap = parseInt(confirmedTotalFarms, 10) || 0
+    if (!confirmedTotalFarms) {
+      alert('Enter Total Land and tap Save before adding land areas.')
+      return
+    }
+    if (farmAreaKeys.length >= cap) {
+      alert(`Total Land is set to ${cap} — you can't add more than that. Increase Total Land above and tap Save first.`)
+      return
+    }
     setFarmAreaKeys((keys) => [...keys, uid()])
   }
 
   function removeFarmArea(key) {
     setFarmAreaKeys((keys) => keys.filter((k) => k !== key))
     delete cardRefs.current[key]
+    setFarmMeta((m) => {
+      const next = { ...m }
+      delete next[key]
+      return next
+    })
   }
 
   function handleSaveAll() {
     if (!farmerId) {
-      alert('Select a farmer to link this farm to.')
+      alert('Select a farmer to link this land to.')
+      return
+    }
+    if (!confirmedTotalFarms) {
+      alert('Enter Total Land and tap Save first.')
       return
     }
     if (farmAreaKeys.length === 0) {
-      alert('Add at least one farm area.')
+      alert('Add at least one land area.')
       return
     }
 
     if (selectedFarmer) {
       upsertRow('farmers', {
         ...selectedFarmer,
-        total_farms: totalFarms || selectedFarmer.total_farms || '',
-        total_farm_area: totalFarmArea || selectedFarmer.total_farm_area || '',
-        total_farm_area_unit: totalFarmAreaUnit,
+        total_farms: confirmedTotalFarms || selectedFarmer.total_farms || '',
         synced: false,
         pending_op: 'upsert'
       })
@@ -313,7 +446,8 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
       const snap = card.getSnapshot()
       if (!snap.area) continue
 
-      const farmId = newLocalId('FARM', 'farms')
+      const isExisting = !!snap.farmId
+      const farmId = snap.farmId || newTempId('LAND')
       upsertRow('farms', {
         id: farmId,
         farmer_id: farmerId,
@@ -326,15 +460,16 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
         hire_labour: !!snap.hireLabour,
         irrigation: snap.irrigation,
         tube_well: !!snap.tubeWell,
-        created_at: new Date().toISOString(),
+        ...(isExisting ? {} : { created_at: new Date().toISOString() }),
         synced: false,
         pending_op: 'upsert'
       })
       savedFarms++
 
       for (const crop of snap.crops) {
+        if (crop.existingId) continue // already saved earlier — nothing changed here
         upsertRow('crops', {
-          id: newLocalId('CR', 'crops'),
+          id: newTempId('CR'),
           farm_id: farmId,
           name: crop.name,
           season: crop.season || '',
@@ -351,7 +486,7 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
     }
 
     if (savedFarms === 0) {
-      alert('Fill in the farm area (at least Farm Area size) before saving.')
+      alert('Fill in the land area (at least Land Area size) before saving.')
       return
     }
 
@@ -360,18 +495,31 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white w-full sm:max-w-2xl max-h-[92vh] sm:rounded-[24px] rounded-t-[24px] shadow-2xl overflow-hidden flex flex-col">
-        <div className="p-5 border-b flex justify-between items-center bg-gradient-to-r from-green-50 to-amber-50">
-          <h3 className="font-bold text-lg flex items-center gap-2">
-            <Tractor className="w-5 h-5 text-green-600" /> Capture Farm
-          </h3>
-          <button onClick={onClose} className="p-2 bg-white rounded-full shadow">
-            <X className="w-4 h-4" />
+    <div className="fixed inset-0 z-50 bg-cream flex flex-col">
+      <div className="shrink-0 px-3 sm:px-5 py-3 border-b flex justify-between items-center gap-2 bg-gradient-to-r from-green-50 to-amber-50">
+        <h3 className="font-bold text-base sm:text-lg flex items-center gap-2 min-w-0">
+          <Tractor className="w-5 h-5 text-green-600 shrink-0" />
+          <span className="truncate">Capture Land</span>
+        </h3>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={onClose}
+            className="px-3 sm:px-4 py-2 rounded-md border border-gray-200 bg-white text-xs sm:text-sm font-medium"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSaveAll}
+            className="px-3 sm:px-4 py-2 rounded-md bg-green-600 text-white text-xs sm:text-sm font-semibold shadow"
+          >
+            Save Land
           </button>
         </div>
+      </div>
 
-        <div className="overflow-y-auto p-5 space-y-5">
+      <div className="flex-1 overflow-y-auto">
+        <div className="w-full p-4 sm:p-6 lg:p-8">
+          <div className="w-full bg-white rounded-lg border border-gray-200 shadow-sm p-5 sm:p-8 space-y-5">
           {!farmerId ? (
             <div className="space-y-2">
               <label className="text-xs font-semibold text-gray-600 uppercase">Select Farmer</label>
@@ -386,11 +534,16 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                 />
               </div>
               <div className="text-[11px] font-bold text-gray-500 uppercase">{filteredFarmers.length} result{filteredFarmers.length === 1 ? '' : 's'} found</div>
-              <div className="max-h-64 overflow-y-auto rounded-xl border divide-y">
+              <div className="max-h-[calc(100vh-320px)] min-h-[200px] overflow-y-auto rounded-xl border divide-y">
                 {filteredFarmers.map((f) => (
                   <button
                     key={f.id}
-                    onClick={() => setFarmerId(f.id)}
+                    onClick={() => {
+                      setFarmerId(f.id)
+                      setTotalFarms(f.total_farms || '')
+                      setConfirmedTotalFarms(f.total_farms || '')
+                      loadExistingFarms(f.id)
+                    }}
                     className="w-full flex items-center gap-3 p-3 hover:bg-green-50 text-left"
                   >
                     <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center overflow-hidden shrink-0">
@@ -406,7 +559,7 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                     </div>
                     <div className="min-w-0">
                       <div className="font-bold text-sm truncate">{f.name}</div>
-                      <div className="text-[11px] text-gray-500 font-mono">{f.id} {f.village ? `• ${f.village}` : ''}</div>
+                      <div className="text-[11px] text-gray-500 font-mono">{displayId(f.id)} {f.village ? `• ${f.village}` : ''}</div>
                     </div>
                   </button>
                 ))}
@@ -432,13 +585,16 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                   </div>
                   <div>
                     <div className="font-bold text-sm">{selectedFarmer?.name}</div>
-                    <div className="text-[11px] text-gray-500 font-mono">{selectedFarmer?.id}</div>
+                    <div className="text-[11px] text-gray-500 font-mono">{displayId(selectedFarmer?.id)}</div>
                   </div>
                 </div>
                 <button
                   onClick={() => {
                     setFarmerId('')
+                    setTotalFarms('')
+                    setConfirmedTotalFarms('')
                     setFarmAreaKeys([])
+                    setFarmMeta({})
                     cardRefs.current = {}
                   }}
                   className="text-xs font-bold text-green-700 underline"
@@ -447,43 +603,37 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-gray-600 uppercase">Total Farm</label>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-600 uppercase">
+                  Total Land <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
                   <input
                     value={totalFarms}
-                    onChange={(e) => setTotalFarms(e.target.value)}
-                    placeholder="No. of farms"
-                    className="w-full px-3 py-3 rounded-xl border border-gray-200 bg-white"
+                    onChange={(e) => setTotalFarms(e.target.value.replace(/[^0-9]/g, ''))}
+                    inputMode="numeric"
+                    className="w-24 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm"
                   />
+                  <button
+                    onClick={saveTotalFarms}
+                    className="px-3 py-2 rounded-lg bg-gray-900 text-white font-bold text-xs"
+                  >
+                    Save
+                  </button>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-gray-600 uppercase">Total Farm Area</label>
-                  <div className="flex gap-2">
-                    <input
-                      value={totalFarmArea}
-                      onChange={(e) => setTotalFarmArea(e.target.value)}
-                      placeholder="e.g. 5"
-                      className="flex-1 px-3 py-3 rounded-xl border border-gray-200 bg-white"
-                    />
-                    <select
-                      value={totalFarmAreaUnit}
-                      onChange={(e) => setTotalFarmAreaUnit(e.target.value)}
-                      className="w-24 px-2 py-3 rounded-xl border border-gray-200 bg-white text-sm font-bold"
-                    >
-                      <option>Acres</option>
-                      <option>Bigha</option>
-                    </select>
-                  </div>
-                </div>
+                {confirmedTotalFarms && (
+                  <p className="text-[11px] font-bold text-green-700">
+                    Land areas: {farmAreaKeys.length} / {confirmedTotalFarms}
+                  </p>
+                )}
               </div>
 
-              {totalFarms && totalFarmArea && farmAreaKeys.length === 0 && (
+              {confirmedTotalFarms && farmAreaKeys.length === 0 && (
                 <button
                   onClick={addFarmArea}
                   className="w-full py-3 rounded-xl bg-green-600 text-white font-bold flex items-center justify-center gap-2"
                 >
-                  <Plus className="w-4 h-4" /> Add Farm Area
+                  <Plus className="w-4 h-4" /> Add Land Area
                 </button>
               )}
 
@@ -494,6 +644,8 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                     index={i}
                     ref={(el) => (cardRefs.current[key] = el)}
                     onRemove={() => removeFarmArea(key)}
+                    initialFarm={farmMeta[key]}
+                    initialCrops={farmMeta[key] ? crops.filter((c) => c.farm_id === key) : []}
                   />
                 ))}
               </div>
@@ -503,20 +655,12 @@ export default function CaptureFarmModal({ farmers, onClose, onSaved }) {
                   onClick={addFarmArea}
                   className="w-full py-2.5 rounded-xl border-2 border-dashed border-green-300 text-green-700 font-bold flex items-center justify-center gap-2"
                 >
-                  <Plus className="w-4 h-4" /> Add Another Farm Area
+                  <Plus className="w-4 h-4" /> Add Another Land Area
                 </button>
               )}
             </>
           )}
-        </div>
-
-        <div className="p-4 border-t flex gap-3">
-          <button onClick={onClose} className="flex-1 py-3 rounded-xl border">
-            Cancel
-          </button>
-          <button onClick={handleSaveAll} className="flex-1 py-3 rounded-xl bg-green-600 text-white font-bold shadow-lg">
-            Save Farm
-          </button>
+          </div>
         </div>
       </div>
     </div>

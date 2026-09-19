@@ -1,7 +1,7 @@
 export const translations = {
   en: {
     appName: 'AuraxFarm',
-    tagline: 'Farm & Farmer Data Platform',
+    tagline: 'Land & Farmer Data Platform',
     login: 'Login',
     logout: 'Logout',
     role: 'Select Role',
@@ -11,13 +11,13 @@ export const translations = {
     password: 'Password',
     dashboard: 'Dashboard',
     farmers: 'Farmers',
-    farms: 'Farmlands',
+    farms: 'Land',
     sync: 'Sync Center',
     reports: 'Reports',
     master: 'Master Data',
     users: 'User Mgmt',
     newFarmer: 'New Farmer',
-    captureFarm: 'Capture Farm',
+    captureFarm: 'Capture Land',
     todayEntries: "Today's Entries",
     pendingSync: 'Pending Sync',
     gpsStatus: 'GPS Status',
@@ -28,7 +28,7 @@ export const translations = {
     mediaCapture: 'Media Capture',
     offline: 'Offline Mode',
     online: 'Online',
-    autoId: 'Farm ID Auto',
+    autoId: 'Land ID Auto',
     save: 'Save Entry',
     addCrop: 'Add Crop',
     recordAudio: 'Record Audio'

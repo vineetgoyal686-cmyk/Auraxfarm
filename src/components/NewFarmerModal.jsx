@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react'
 import { User, Camera, Paperclip, FileText, X } from 'lucide-react'
 import VoiceInputButton from './VoiceInputButton.jsx'
 import StorageImage from './StorageImage.jsx'
-import { upsertRow, newLocalId } from '../lib/localStore.js'
+import { upsertRow, newTempId } from '../lib/localStore.js'
 import { uploadPhoto, uploadDocument, fileToDataUrl, getDisplayUrl } from '../lib/storage.js'
 
 function formatSize(bytes) {
@@ -144,7 +144,7 @@ export default function NewFarmerModal({ lang, farmer, onClose, onSaved }) {
       documents.push({ name: file.name, url })
     }
     const row = {
-      id: farmer ? farmer.id : newLocalId('FRM', 'farmers'),
+      id: farmer ? farmer.id : newTempId('FRM'),
       ...form,
       photo,
       documents,

@@ -413,7 +413,7 @@ export default function AdminApp() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                   { label: 'Total Farmers', val: farmers.length },
-                  { label: 'Farms Captured', val: farms.length },
+                  { label: 'Land Captured', val: farms.length },
                   { label: 'Crops Logged', val: crops.length },
                   {
                     label: 'Cultivated Area',
@@ -551,12 +551,12 @@ export default function AdminApp() {
               </div>
 
               <div className="p-5 rounded-[20px] bg-white border shadow-sm">
-                <h3 className="font-bold mb-4">Farms ({farms.length})</h3>
+                <h3 className="font-bold mb-4">Land ({farms.length})</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="text-[11px] uppercase text-gray-500">
                       <tr>
-                        <th className="text-left py-2">Farm</th>
+                        <th className="text-left py-2">Land</th>
                         <th className="text-left">Farmer</th>
                         <th className="text-left">Area</th>
                         <th className="text-left">Irrigation</th>
@@ -572,7 +572,7 @@ export default function AdminApp() {
                             onClick={() => owner && setSelectedFarmer(owner)}
                             className={`border-t ${owner ? 'cursor-pointer hover:bg-gray-50' : ''}`}
                           >
-                            <td className="py-3 font-bold">{farm.title || 'Farm'}</td>
+                            <td className="py-3 font-bold">{farm.title || 'Land'}</td>
                             <td>{owner?.name || 'Unknown'}</td>
                             <td>{farm.area || '—'} {farm.area_unit || ''}</td>
                             <td>{farm.irrigation || '—'}%</td>

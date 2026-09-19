@@ -18,8 +18,15 @@ alter table profiles add column if not exists avatar_url text;
 alter table profiles add column if not exists name text;
 
 -- 2. Farmers
+-- The id is assigned server-side from farmer_id_seq (see below) rather
+-- than being generated client-side, so it's guaranteed unique and truly
+-- sequential no matter how many devices are creating farmers offline at
+-- once. Field app inserts omit `id` entirely for a brand-new farmer so
+-- this default kicks in; see src/lib/sync.js insertFarmerWithServerId.
+create sequence if not exists farmer_id_seq;
+
 create table if not exists farmers (
-  id text primary key,
+  id text primary key default ('FRM-' || nextval('farmer_id_seq')),
   name text not null,
   mobile text not null,
   gender text,
@@ -47,11 +54,27 @@ alter table farmers add column if not exists total_farms text;
 alter table farmers add column if not exists total_farm_area text;
 alter table farmers add column if not exists total_farm_area_unit text;
 alter table farmers add column if not exists documents jsonb default '[]'::jsonb;
+alter table farmers alter column id set default ('FRM-' || nextval('farmer_id_seq'));
 
--- 3. Farms
+-- If you already have farmers with hand-picked/random ids, run this once
+-- so farmer_id_seq continues after the highest existing FRM-<n> id
+-- instead of restarting at 1 and colliding with one of them.
+select setval(
+  'farmer_id_seq',
+  coalesce((select max(substring(id from 5)::bigint) from farmers where id ~ '^FRM-[0-9]+$'), 0)
+);
+
+-- 3. Farms (displayed in the UI as "Land"). Same server-assigned-id
+-- pattern as farmers: id comes from land_id_seq, never from the client,
+-- so it's collision-free across any number of devices. New land records
+-- use the LAND- prefix; that's a different prefix from the legacy
+-- FARM-<n> ids some rows may already have, so there's no clash to guard
+-- against with a setval here the way there was for farmers/crops.
+create sequence if not exists land_id_seq;
+
 create table if not exists farms (
-  id text primary key,
-  farmer_id text references farmers (id) on delete cascade,
+  id text primary key default ('LAND-' || nextval('land_id_seq')),
+  farmer_id text references farmers (id) on update cascade on delete cascade,
   title text,
   area text,
   area_unit text,
@@ -65,10 +88,24 @@ create table if not exists farms (
   created_at timestamptz default now()
 );
 
+alter table farms alter column id set default ('LAND-' || nextval('land_id_seq'));
+
+-- If farms already exists from an earlier version without ON UPDATE
+-- CASCADE, this lets a farmer's id be changed (e.g. renumbering) without
+-- manually re-pointing every linked farm row by hand.
+alter table farms drop constraint if exists farms_farmer_id_fkey;
+alter table farms add constraint farms_farmer_id_fkey
+  foreign key (farmer_id) references farmers (id) on update cascade on delete cascade;
+
 -- 4. Crops
+-- Crop ids already used the CR- prefix locally, so (unlike land) the
+-- sequence here DOES need to continue after any existing CR-<n> id to
+-- avoid handing out one that's already taken.
+create sequence if not exists crop_id_seq;
+
 create table if not exists crops (
-  id text primary key,
-  farm_id text references farms (id) on delete cascade,
+  id text primary key default ('CR-' || nextval('crop_id_seq')),
+  farm_id text references farms (id) on update cascade on delete cascade,
   name text,
   season text,
   sowing_date text,
@@ -78,6 +115,17 @@ create table if not exists crops (
   fertilizer text,
   created_by uuid references auth.users (id),
   created_at timestamptz default now()
+);
+
+alter table crops alter column id set default ('CR-' || nextval('crop_id_seq'));
+
+alter table crops drop constraint if exists crops_farm_id_fkey;
+alter table crops add constraint crops_farm_id_fkey
+  foreign key (farm_id) references farms (id) on update cascade on delete cascade;
+
+select setval(
+  'crop_id_seq',
+  coalesce((select max(substring(id from 4)::bigint) from crops where id ~ '^CR-[0-9]+$'), 0)
 );
 
 -- Row Level Security -----------------------------------------------------

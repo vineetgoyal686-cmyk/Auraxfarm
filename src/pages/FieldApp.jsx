@@ -29,7 +29,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { translations } from '../lib/i18n.js'
-import { listRows } from '../lib/localStore.js'
+import { listRows, displayId } from '../lib/localStore.js'
 import { useOnlineSync } from '../lib/useOnlineSync.js'
 import NewFarmerModal from '../components/NewFarmerModal.jsx'
 import CaptureFarmModal from '../components/CaptureFarmModal.jsx'
@@ -120,7 +120,7 @@ export default function FieldApp() {
     const lines = filteredFarmers.map((f, i) =>
       [
         i + 1,
-        f.id,
+        displayId(f.id),
         f.name || '',
         f.mobile || '',
         f.age || '',
@@ -154,7 +154,7 @@ export default function FieldApp() {
       head: [['S.No', 'ID', 'Name', 'Mobile', 'Age/Gender', 'Village, District, State', 'Status', 'Added Date']],
       body: filteredFarmers.map((f, i) => [
         i + 1,
-        f.id,
+        displayId(f.id),
         f.name || '',
         f.mobile || '',
         `${f.age || '—'}y, ${f.gender || '—'}`,
@@ -507,7 +507,7 @@ export default function FieldApp() {
                           >
                             {f.synced ? '✓ Synced' : '◍ Pending Sync'}
                           </span>
-                          <span className="text-[10px] px-2 py-1 rounded-full bg-gray-100">{f.id}</span>
+                          <span className="text-[10px] px-2 py-1 rounded-full bg-gray-100">{displayId(f.id)}</span>
                         </div>
                         <div className="flex gap-1">
                           <button
@@ -562,7 +562,7 @@ export default function FieldApp() {
                     <tbody>
                       {pagedFarmers.map((f) => (
                         <tr key={f.id} className="divide-x divide-gray-200 hover:bg-gray-50/60">
-                          <td className="py-3 px-4 font-mono text-xs text-gray-600 border-b border-gray-200">{f.id}</td>
+                          <td className="py-3 px-4 font-mono text-xs text-gray-600 border-b border-gray-200">{displayId(f.id)}</td>
                           <td className="px-4 font-bold border-b border-gray-200">{f.name}</td>
                           <td className="px-4 text-gray-600 border-b border-gray-200">{f.mobile || '—'}</td>
                           <td className="px-4 text-gray-600 border-b border-gray-200">{f.age || '—'}</td>
@@ -623,12 +623,12 @@ export default function FieldApp() {
         {tab === 'farms' && (
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="font-bold text-lg">Farmlands ({farms.length})</h2>
+              <h2 className="font-bold text-lg">Land ({farms.length})</h2>
               <button
                 onClick={() => setShowCaptureFarm(true)}
                 className="px-4 py-2.5 rounded-xl bg-green-600 text-white font-bold flex items-center gap-2"
               >
-                <Plus className="w-4 h-4" /> Capture Farm
+                <Plus className="w-4 h-4" /> Capture Land
               </button>
             </div>
             <div className="grid lg:grid-cols-2 gap-4">
@@ -640,7 +640,7 @@ export default function FieldApp() {
                     <div className="flex justify-between items-start">
                       <div>
                         <div className="font-mono text-xs font-bold px-2 py-1 rounded-full bg-amber-50 border border-amber-200 inline-block">
-                          {farm.id}
+                          {displayId(farm.id)}
                         </div>
                         <div className="font-bold mt-2">
                           {owner?.name || 'Unknown'} • {farm.title} • {farm.area} {farm.area_unit}
@@ -688,7 +688,7 @@ export default function FieldApp() {
                   </div>
                 )
               })}
-              {farms.length === 0 && <div className="text-sm text-gray-400">No farms captured yet.</div>}
+              {farms.length === 0 && <div className="text-sm text-gray-400">No land captured yet.</div>}
             </div>
           </div>
         )}
@@ -729,22 +729,34 @@ export default function FieldApp() {
       {showNewFarmer && (
         <NewFarmerModal lang={lang} onClose={() => setShowNewFarmer(false)} onSaved={refreshAll} />
       )}
-      {editFarmer && (
-        <NewFarmerModal
-          lang={lang}
-          farmer={editFarmer}
-          onClose={() => setEditFarmer(null)}
-          onSaved={refreshAll}
-        />
-      )}
       {showCaptureFarm && (
-        <CaptureFarmModal farmers={farmers} onClose={() => setShowCaptureFarm(false)} onSaved={refreshAll} />
+        <CaptureFarmModal farmers={farmers} farms={farms} crops={crops} onClose={() => setShowCaptureFarm(false)} onSaved={refreshAll} />
       )}
       {addCropFor && (
         <AddCropModal farmId={addCropFor} onClose={() => setAddCropFor(null)} onSaved={refreshAll} />
       )}
       {viewFarmer && (
-        <FarmerDetailModal farmer={viewFarmer} farms={farms} crops={crops} onClose={() => setViewFarmer(null)} />
+        <FarmerDetailModal
+          farmer={viewFarmer}
+          farms={farms}
+          crops={crops}
+          onClose={() => setViewFarmer(null)}
+          onEdit={(f) => {
+            setEditFarmer(f)
+          }}
+          onFarmSaved={refreshAll}
+        />
+      )}
+      {editFarmer && (
+        <NewFarmerModal
+          lang={lang}
+          farmer={editFarmer}
+          onClose={() => setEditFarmer(null)}
+          onSaved={(row) => {
+            refreshAll()
+            if (viewFarmer) setViewFarmer(row)
+          }}
+        />
       )}
       {showProfile && (
         <ProfileModal

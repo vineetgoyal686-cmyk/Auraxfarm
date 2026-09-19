@@ -1,9 +1,21 @@
 import React, { useState } from 'react'
 import { X, Wheat } from 'lucide-react'
-import { upsertRow, newLocalId } from '../lib/localStore.js'
+import { upsertRow, newTempId } from '../lib/localStore.js'
 
-export default function AddCropModal({ farmId, onClose, onSaved }) {
-  const [form, setForm] = useState({})
+export default function AddCropModal({ farmId, crop, onClose, onSaved }) {
+  const [form, setForm] = useState(() =>
+    crop
+      ? {
+          name: crop.name,
+          season: crop.season,
+          yield: crop.yield,
+          sowingDate: crop.sowing_date,
+          harvestDate: crop.harvest_date,
+          sprays: crop.sprays,
+          fertilizer: crop.fertilizer
+        }
+      : {}
+  )
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
 
   function handleSave() {
@@ -12,8 +24,8 @@ export default function AddCropModal({ farmId, onClose, onSaved }) {
       return
     }
     const row = {
-      id: newLocalId('CR', 'crops'),
-      farm_id: farmId,
+      id: crop ? crop.id : newTempId('CR'),
+      farm_id: crop ? crop.farm_id : farmId,
       name: form.name,
       season: form.season || '',
       sowing_date: form.sowingDate || '',
@@ -21,7 +33,7 @@ export default function AddCropModal({ farmId, onClose, onSaved }) {
       yield: form.yield || '',
       sprays: form.sprays || '0',
       fertilizer: form.fertilizer || '',
-      created_at: new Date().toISOString(),
+      created_at: crop ? crop.created_at : new Date().toISOString(),
       synced: false,
       pending_op: 'upsert'
     }
@@ -35,7 +47,7 @@ export default function AddCropModal({ farmId, onClose, onSaved }) {
       <div className="bg-white w-full sm:max-w-lg rounded-t-[24px] sm:rounded-[24px] p-5 space-y-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center">
           <h3 className="font-bold flex gap-2 items-center">
-            <Wheat className="w-5 h-5 text-amber-600" /> Add Crop &mdash; {farmId}
+            <Wheat className="w-5 h-5 text-amber-600" /> {crop ? 'Edit Crop' : 'Add Crop'} &mdash; {crop ? crop.farm_id : farmId}
           </h3>
           <button onClick={onClose} className="p-2 bg-gray-100 rounded-full">
             <X className="w-4 h-4" />
@@ -109,7 +121,7 @@ export default function AddCropModal({ farmId, onClose, onSaved }) {
         </div>
 
         <button onClick={handleSave} className="w-full py-3 rounded-xl bg-amber-500 text-white font-bold">
-          Save Crop
+          {crop ? 'Save Changes' : 'Save Crop'}
         </button>
       </div>
     </div>
