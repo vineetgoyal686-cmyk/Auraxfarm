@@ -44,8 +44,13 @@ export function AuthProvider({ children }) {
 
   async function signIn(email, password) {
     if (!isSupabaseConfigured) throw new Error('Supabase is not configured yet.')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
+    const { data: profile } = await supabase.from('profiles').select('active').eq('id', data.user.id).single()
+    if (profile && profile.active === false) {
+      await supabase.auth.signOut()
+      throw new Error('Your account has been disabled by an administrator.')
+    }
   }
 
   async function signUp(email, password) {

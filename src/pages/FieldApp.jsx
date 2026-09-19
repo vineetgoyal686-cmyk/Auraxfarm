@@ -32,7 +32,7 @@ const TABS = [
 
 export default function FieldApp() {
   const { signOut, isSupabaseConfigured } = useAuth()
-  const { online, pending, lastSync, runSync, refreshPending } = useOnlineSync()
+  const { online, pending, lastSync, lastError, runSync, refreshPending } = useOnlineSync()
   const [lang, setLang] = useState('en')
   const [tab, setTab] = useState('dash')
   const [farmers, setFarmers] = useState(() => listRows('farmers'))
@@ -338,6 +338,12 @@ export default function FieldApp() {
                 {pending} record{pending === 1 ? '' : 's'} waiting to sync. The app also auto-syncs
                 every 20 seconds while online, and immediately when your connection comes back.
               </p>
+              {lastError && (
+                <div className="mt-3 p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700">
+                  <strong>Sync failed:</strong> {lastError}. If this keeps happening, make sure
+                  you&apos;re signed in (not just browsing) and try signing out and back in.
+                </div>
+              )}
             </div>
             <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
               <strong>Offline functionality:</strong> new farmers, farms and crops are written to

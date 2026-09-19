@@ -13,8 +13,8 @@ const FIELDS = [
   { k: 'aadhaar', label: 'Aadhaar (Optional)' },
   { k: 'kcc', label: 'Kisan Credit Card', type: 'select', opts: ['Yes', 'No'] },
   { k: 'qualification', label: 'Academic Qualification' },
-  { k: 'familyMembers', label: 'Family Members' },
-  { k: 'familyIncome', label: 'Family Income (lacs)' },
+  { k: 'family_members', label: 'Family Members' },
+  { k: 'family_income', label: 'Family Income (lacs)' },
   { k: 'state', label: 'State' },
   { k: 'district', label: 'District' },
   { k: 'village', label: 'Village' }

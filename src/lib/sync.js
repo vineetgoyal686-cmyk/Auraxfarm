@@ -11,10 +11,11 @@ export const SYNCED_TABLES = ['farmers', 'farms', 'crops']
  * Returns { pushed, failed } counts.
  */
 async function syncTable(table) {
-  if (!isSupabaseConfigured) return { pushed: 0, failed: 0 }
+  if (!isSupabaseConfigured) return { pushed: 0, failed: 0, errors: [] }
   const rows = pendingRows(table)
   let pushed = 0
   let failed = 0
+  const errors = []
 
   for (const row of rows) {
     const { pending_op, synced, ...payload } = row
@@ -32,23 +33,26 @@ async function syncTable(table) {
     } catch (err) {
       console.warn(`Sync failed for ${table}/${row.id}:`, err.message)
       failed++
+      errors.push({ table, id: row.id, message: err.message })
     }
   }
-  return { pushed, failed }
+  return { pushed, failed, errors }
 }
 
 export async function syncAll() {
   if (!navigator.onLine || !isSupabaseConfigured) {
-    return { pushed: 0, failed: 0, skipped: true }
+    return { pushed: 0, failed: 0, errors: [], skipped: true }
   }
   let pushed = 0
   let failed = 0
+  const errors = []
   for (const table of SYNCED_TABLES) {
     const res = await syncTable(table)
     pushed += res.pushed
     failed += res.failed
+    errors.push(...res.errors)
   }
-  return { pushed, failed, skipped: false }
+  return { pushed, failed, errors, skipped: false }
 }
 
 export function pendingCount() {

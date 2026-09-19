@@ -5,9 +5,17 @@
 create table if not exists profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   email text,
+  name text,
   role text not null default 'field' check (role in ('field', 'admin')),
+  active boolean not null default true,
+  avatar_url text,
   created_at timestamptz default now()
 );
+
+-- If this table already exists from an earlier version of this schema, run:
+alter table profiles add column if not exists active boolean not null default true;
+alter table profiles add column if not exists avatar_url text;
+alter table profiles add column if not exists name text;
 
 -- 2. Farmers
 create table if not exists farmers (
@@ -70,9 +78,36 @@ alter table farms enable row level security;
 alter table crops enable row level security;
 
 -- Profiles: a user can read/update only their own row.
+drop policy if exists "profiles: read own" on profiles;
 create policy "profiles: read own" on profiles for select using (auth.uid() = id);
+drop policy if exists "profiles: update own" on profiles;
 create policy "profiles: update own" on profiles for update using (auth.uid() = id);
+drop policy if exists "profiles: insert own" on profiles;
 create policy "profiles: insert own" on profiles for insert with check (auth.uid() = id);
+
+-- Admins can also read every profile (needed for the User Management screen).
+-- security definer so checking "am I an admin" doesn't re-trigger this same
+-- policy and recurse.
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from profiles where id = auth.uid() and role = 'admin');
+$$;
+
+drop policy if exists "profiles: admins read all" on profiles;
+create policy "profiles: admins read all" on profiles for select using (public.is_admin());
+
+-- Admins can also edit (role/active) and remove any profile row from the
+-- User Management screen. Note: this only removes the app profile — the
+-- underlying auth.users login still exists unless also removed with the
+-- Supabase Admin API (service role), which isn't available client-side.
+drop policy if exists "profiles: admins update all" on profiles;
+create policy "profiles: admins update all" on profiles for update using (public.is_admin());
+drop policy if exists "profiles: admins delete all" on profiles;
+create policy "profiles: admins delete all" on profiles for delete using (public.is_admin());
 
 -- Farmers / Farms / Crops: any signed-in user (field or admin) can read
 -- everything and write their own entries. Tighten this later if you want
