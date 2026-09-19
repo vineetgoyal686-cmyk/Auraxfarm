@@ -12,7 +12,7 @@ export default function AddCropModal({ farmId, onClose, onSaved }) {
       return
     }
     const row = {
-      id: newLocalId('CR'),
+      id: newLocalId('CR', 'crops'),
       farm_id: farmId,
       name: form.name,
       season: form.season || '',

@@ -35,9 +35,16 @@ create table if not exists farmers (
   district text,
   state text,
   photo text,
+  total_farms text,
+  total_farm_area text,
+  total_farm_area_unit text,
   created_by uuid references auth.users (id),
   created_at timestamptz default now()
 );
+
+alter table farmers add column if not exists total_farms text;
+alter table farmers add column if not exists total_farm_area text;
+alter table farmers add column if not exists total_farm_area_unit text;
 
 -- 3. Farms
 create table if not exists farms (

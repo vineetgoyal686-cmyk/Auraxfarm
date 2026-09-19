@@ -46,7 +46,7 @@ export default function NewFarmerModal({ lang, onClose, onSaved }) {
       photo = (await uploadPhoto(photoFile, 'farmers')) || (await fileToDataUrl(photoFile))
     }
     const row = {
-      id: newLocalId('FRM'),
+      id: newLocalId('FRM', 'farmers'),
       ...form,
       photo,
       created_at: new Date().toISOString(),
@@ -60,18 +60,18 @@ export default function NewFarmerModal({ lang, onClose, onSaved }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white w-full sm:max-w-2xl max-h-[92vh] sm:rounded-[24px] rounded-t-[24px] shadow-2xl overflow-hidden flex flex-col">
-        <div className="p-5 border-b flex justify-between items-center bg-gradient-to-r from-green-50 to-amber-50">
-          <h3 className="font-bold text-lg flex items-center gap-2">
-            <User className="w-5 h-5 text-green-600" /> New Farmer
-          </h3>
-          <button onClick={onClose} className="p-2 bg-white rounded-full shadow">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-50 bg-cream flex flex-col">
+      <div className="shrink-0 p-4 sm:p-5 border-b flex justify-between items-center bg-gradient-to-r from-green-50 to-amber-50">
+        <h3 className="font-bold text-lg flex items-center gap-2">
+          <User className="w-5 h-5 text-green-600" /> New Farmer
+        </h3>
+        <button onClick={onClose} className="p-2 bg-white rounded-full shadow">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
 
-        <div className="overflow-y-auto p-5 space-y-4">
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-4">
           <div className="flex gap-4 items-center">
             <div className="w-20 h-20 rounded-2xl bg-green-50 border-2 border-dashed border-green-200 flex items-center justify-center overflow-hidden">
               {photoPreview ? (
@@ -134,19 +134,19 @@ export default function NewFarmerModal({ lang, onClose, onSaved }) {
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="p-4 border-t flex gap-3">
-          <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-gray-200 font-medium">
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex-1 py-3 rounded-xl bg-green-600 text-white font-semibold shadow-lg shadow-green-200 hover:bg-green-700 disabled:opacity-60"
-          >
-            {saving ? 'Saving…' : 'Save Farmer'}
-          </button>
-        </div>
+      <div className="shrink-0 max-w-3xl w-full mx-auto p-4 border-t flex gap-3 bg-cream">
+        <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-gray-200 font-medium bg-white">
+          Cancel
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex-1 py-3 rounded-xl bg-green-600 text-white font-semibold shadow-lg shadow-green-200 hover:bg-green-700 disabled:opacity-60"
+        >
+          {saving ? 'Saving…' : 'Save Farmer'}
+        </button>
       </div>
     </div>
   )

@@ -56,7 +56,13 @@ export function replaceTable(table, rows) {
   writeTable(table, rows)
 }
 
-export function newLocalId(prefix) {
-  const rand = Math.floor(1000 + Math.random() * 9000)
-  return `${prefix}-${rand}`
+export function newLocalId(prefix, table) {
+  const rows = table ? readTable(table) : []
+  let max = 0
+  for (const r of rows) {
+    if (typeof r.id !== 'string' || !r.id.startsWith(prefix + '-')) continue
+    const n = parseInt(r.id.slice(prefix.length + 1), 10)
+    if (!isNaN(n) && n > max) max = n
+  }
+  return `${prefix}-${max + 1}`
 }

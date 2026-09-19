@@ -70,6 +70,16 @@ export default function FarmerDetailModal({ farmer, farms, crops, onClose }) {
             <h4 className="text-xs font-bold uppercase text-gray-500 mb-3 flex items-center gap-2">
               <MapPin className="w-3.5 h-3.5" /> Farms ({farmerFarms.length})
             </h4>
+            {(farmer.total_farms || farmer.total_farm_area) && (
+              <div className="mb-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex gap-4">
+                {farmer.total_farms && <span><strong>Total Farms:</strong> {farmer.total_farms}</span>}
+                {farmer.total_farm_area && (
+                  <span>
+                    <strong>Total Farm Area:</strong> {farmer.total_farm_area} {farmer.total_farm_area_unit || ''}
+                  </span>
+                )}
+              </div>
+            )}
             {farmerFarms.length === 0 && (
               <p className="text-xs text-gray-400">No farms captured for this farmer yet.</p>
             )}
