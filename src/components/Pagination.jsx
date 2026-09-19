@@ -23,7 +23,7 @@ export default function Pagination({ page, setPage, pageSize, onPageSizeChange, 
   if (totalItems === 0) return null
 
   return (
-    <div className="p-3 border-t flex items-center justify-between gap-3 flex-wrap bg-white">
+    <div className="sticky bottom-0 z-10 p-3 border-t rounded-b-lg flex items-center justify-between gap-3 flex-wrap bg-white">
       <span className="text-xs font-bold text-gray-500">
         {rangeStart}-{rangeEnd} of {totalItems} items
       </span>

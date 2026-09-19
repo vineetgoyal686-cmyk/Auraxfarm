@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { X, User, MapPin, Tractor, Wheat, Paperclip, FileText, Pencil, Plus } from 'lucide-react'
 import StorageImage from './StorageImage.jsx'
 import { getDisplayUrl } from '../lib/storage.js'
-import { displayId } from '../lib/localStore.js'
+import { displayId, upsertRow } from '../lib/localStore.js'
 import EditFarmModal from './EditFarmModal.jsx'
 import AddCropModal from './AddCropModal.jsx'
 import CaptureFarmModal from './CaptureFarmModal.jsx'
@@ -35,7 +35,17 @@ export default function FarmerDetailModal({ farmer, farms, crops, onClose, onEdi
   const [addCropForFarmId, setAddCropForFarmId] = useState(null)
   const [editCropRecord, setEditCropRecord] = useState(null)
   const [showAddFarm, setShowAddFarm] = useState(false)
+  const [totalLandInput, setTotalLandInput] = useState(farmer?.total_farms || '')
   if (!farmer) return null
+
+  function saveTotalLand() {
+    if (!totalLandInput) {
+      alert('Enter the total number of land parcels first.')
+      return
+    }
+    upsertRow('farmers', { ...farmer, total_farms: totalLandInput, synced: false, pending_op: 'upsert' })
+    onFarmSaved?.()
+  }
 
   const farmerFarms = farms.filter((f) => f.farmer_id === farmer.id)
   const farmIds = new Set(farmerFarms.map((f) => f.id))
@@ -175,25 +185,27 @@ export default function FarmerDetailModal({ farmer, farms, crops, onClose, onEdi
             )}
 
             {tab === 'land' && (
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-xs font-bold uppercase text-gray-500 flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5" /> Land
+              <div className="space-y-5">
+                <div className="p-4 rounded-md bg-amber-50 border border-amber-200 space-y-2">
+                  <h4 className="text-xs font-bold uppercase text-amber-800 flex items-center gap-2">
+                    <MapPin className="w-3.5 h-3.5" /> Overall Land Summary
                   </h4>
-                  <button
-                    onClick={() => setShowAddFarm(true)}
-                    className="text-xs px-3 py-1.5 rounded-full bg-green-600 text-white font-bold flex items-center gap-1.5"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Add Land
-                  </button>
-                </div>
-                {(farmer.total_farms || calculatedArea) && (
-                  <div className="mb-4 p-3 rounded-md bg-amber-50 border border-amber-200 text-xs text-amber-900 flex gap-4">
-                    {farmer.total_farms && (
-                      <span>
-                        <strong>Total Land:</strong> {farmer.total_farms}
-                      </span>
-                    )}
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-amber-900">
+                    <div className="flex items-center gap-2">
+                      <strong>Total Land:</strong>
+                      <input
+                        value={totalLandInput}
+                        onChange={(e) => setTotalLandInput(e.target.value.replace(/[^0-9]/g, ''))}
+                        inputMode="numeric"
+                        className="w-16 px-2 py-1 rounded-md border border-amber-300 bg-white text-xs"
+                      />
+                      <button
+                        onClick={saveTotalLand}
+                        className="px-2 py-1 rounded-md bg-gray-900 text-white text-[11px] font-bold"
+                      >
+                        Save
+                      </button>
+                    </div>
                     {calculatedArea && (
                       <span>
                         <strong>Total Land Area (captured):</strong> {calculatedArea}
@@ -203,7 +215,19 @@ export default function FarmerDetailModal({ farmer, farms, crops, onClose, onEdi
                       ({farmerFarms.length} of {farmer.total_farms || farmerFarms.length} captured)
                     </span>
                   </div>
-                )}
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase text-gray-500 flex items-center gap-2">
+                    <MapPin className="w-3.5 h-3.5" /> Land Records
+                  </h4>
+                  <button
+                    onClick={() => setShowAddFarm(true)}
+                    className="text-xs px-3 py-1.5 rounded-full bg-green-600 text-white font-bold flex items-center gap-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Land
+                  </button>
+                </div>
                 {farmerFarms.length === 0 && !farmer.total_farms ? (
                   <p className="text-xs text-gray-400">No farms captured for this farmer yet.</p>
                 ) : (

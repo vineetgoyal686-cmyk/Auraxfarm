@@ -8,7 +8,6 @@ import {
   Tractor,
   CloudUpload,
   LogOut,
-  Wifi,
   WifiOff,
   Plus,
   Search,
@@ -25,7 +24,10 @@ import {
   Eye,
   Download,
   ChevronDown,
-  Pencil
+  Pencil,
+  MapPin,
+  Wheat,
+  AlertTriangle
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { translations } from '../lib/i18n.js'
@@ -69,7 +71,7 @@ export default function FieldApp() {
   const [showCaptureFarm, setShowCaptureFarm] = useState(false)
   const [addCropFor, setAddCropFor] = useState(null)
   const [query, setQuery] = useState('')
-  const [farmerView, setFarmerView] = useState('card')
+  const [farmerView, setFarmerView] = useState('table')
   const [dateRange, setDateRange] = useState([null, null])
   const [viewFarmer, setViewFarmer] = useState(null)
   const [editFarmer, setEditFarmer] = useState(null)
@@ -228,28 +230,33 @@ export default function FieldApp() {
             </button>
           ))}
 
-          <div className={`mt-4 p-3 rounded-xl border ${collapsed ? 'lg:hidden' : ''} ${
-            online ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
-          }`}>
-            <div className={`text-xs font-bold flex items-center gap-2 ${online ? 'text-green-700' : 'text-red-700'}`}>
-              {online ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
-              {online ? t.online : t.offline}
+          {!online && (
+            <div className={`mt-4 p-3 rounded-md border bg-red-50 border-red-200 ${collapsed ? 'lg:hidden' : ''}`}>
+              <div className="text-xs font-bold flex items-center gap-2 text-red-700">
+                <WifiOff className="w-4 h-4" />
+                {t.offline}
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className={`flex rounded-xl border bg-gray-50 p-1 mt-2 ${collapsed ? 'lg:hidden' : ''}`}>
-            {['en', 'hi', 'pa'].map((code) => (
-              <button
-                key={code}
-                onClick={() => setLang(code)}
-                className={`flex-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
-                  lang === code ? 'bg-green-600 text-white' : 'text-gray-600'
-                }`}
-              >
-                {code.toUpperCase()}
-              </button>
-            ))}
-          </div>
+          {!collapsed && (
+            <div className="mt-4">
+              <div className="text-[10px] font-bold uppercase text-gray-400 mb-1.5 px-1">Language</div>
+              <div className="grid grid-cols-3 gap-1 rounded-md bg-gray-100 p-1">
+                {['en', 'hi', 'pa'].map((code) => (
+                  <button
+                    key={code}
+                    onClick={() => setLang(code)}
+                    className={`py-1.5 rounded text-xs font-bold text-center transition-colors ${
+                      lang === code ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {code.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="p-3 border-t">
@@ -285,66 +292,86 @@ export default function FieldApp() {
       </div>
 
       <div className="flex-1 min-w-0 h-screen overflow-y-auto flex flex-col">
-        <div className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b px-4 lg:px-8 py-3 flex items-center gap-3 shrink-0">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 bg-gray-100 rounded-xl">
-            <Menu className="w-5 h-5" />
-          </button>
-          <div className="flex items-center gap-2 font-bold text-gray-900">
-            {currentTab && <currentTab.icon className="w-4 h-4 text-green-700" />}
-            {currentTab ? t[currentTab.labelKey] : t.appName}
+        <div className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b shrink-0">
+          <div className="px-4 lg:px-8 py-3 flex items-center gap-3">
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 bg-gray-100 rounded-xl">
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-2 font-bold text-gray-900">
+              {currentTab && <currentTab.icon className="w-4 h-4 text-green-700" />}
+              {currentTab ? t[currentTab.labelKey] : t.appName}
+            </div>
+            {tab === 'farmers' && (
+              <div className="ml-auto flex items-center gap-2">
+                <div className="flex rounded-lg border bg-gray-50 p-1">
+                  <button
+                    onClick={() => setFarmerView('card')}
+                    title="Card view"
+                    className={`p-1.5 rounded-md ${farmerView === 'card' ? 'bg-white shadow text-green-700' : 'text-gray-400'}`}
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setFarmerView('table')}
+                    title="Table view"
+                    className={`p-1.5 rounded-md ${farmerView === 'table' ? 'bg-white shadow text-green-700' : 'text-gray-400'}`}
+                  >
+                    <List className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="relative">
+                  <button
+                    onClick={() => setExportMenuOpen((v) => !v)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-bold text-gray-700 hover:bg-gray-50"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Export
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </button>
+                  {exportMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setExportMenuOpen(false)} />
+                      <div className="absolute right-0 top-11 z-40 w-40 bg-white border rounded-xl shadow-lg overflow-hidden text-left">
+                        <button
+                          onClick={exportFarmersCSV}
+                          className="w-full flex items-center px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                        >
+                          As Excel (.csv)
+                        </button>
+                        <button
+                          onClick={exportFarmersPDF}
+                          className="w-full flex items-center px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                        >
+                          As PDF
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowNewFarmer(true)}
+                  className="px-4 py-2 rounded-xl bg-green-600 text-white font-bold flex items-center gap-2 text-sm"
+                >
+                  <Plus className="w-4 h-4" /> New
+                </button>
+              </div>
+            )}
           </div>
+
           {tab === 'farmers' && (
-            <div className="ml-auto flex items-center gap-2">
-              <div className="flex rounded-lg border bg-gray-50 p-1">
-                <button
-                  onClick={() => setFarmerView('card')}
-                  title="Card view"
-                  className={`p-1.5 rounded-md ${farmerView === 'card' ? 'bg-white shadow text-green-700' : 'text-gray-400'}`}
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setFarmerView('table')}
-                  title="Table view"
-                  className={`p-1.5 rounded-md ${farmerView === 'table' ? 'bg-white shadow text-green-700' : 'text-gray-400'}`}
-                >
-                  <List className="w-4 h-4" />
-                </button>
+            <div className="px-4 lg:px-8 pb-3 flex items-center gap-3 flex-wrap">
+              <div className="relative w-full sm:w-56">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search farmer, village"
+                  className="w-full pl-9 pr-3 py-2 rounded-lg border bg-white outline-none text-sm"
+                />
               </div>
-              <div className="relative">
-                <button
-                  onClick={() => setExportMenuOpen((v) => !v)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-bold text-gray-700 hover:bg-gray-50"
-                >
-                  <Download className="w-3.5 h-3.5" /> Export
-                  <ChevronDown className="w-3.5 h-3.5" />
-                </button>
-                {exportMenuOpen && (
-                  <>
-                    <div className="fixed inset-0 z-30" onClick={() => setExportMenuOpen(false)} />
-                    <div className="absolute right-0 top-11 z-40 w-40 bg-white border rounded-xl shadow-lg overflow-hidden text-left">
-                      <button
-                        onClick={exportFarmersCSV}
-                        className="w-full flex items-center px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50"
-                      >
-                        As Excel (.csv)
-                      </button>
-                      <button
-                        onClick={exportFarmersPDF}
-                        className="w-full flex items-center px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50"
-                      >
-                        As PDF
-                      </button>
-                    </div>
-                  </>
-                )}
+              <span className="text-xs font-bold text-gray-500 shrink-0">{filteredFarmers.length} farmers</span>
+              <div className="ml-auto">
+                <DateRangePicker value={dateRange} onChange={setDateRange} />
               </div>
-              <button
-                onClick={() => setShowNewFarmer(true)}
-                className="px-4 py-2 rounded-xl bg-green-600 text-white font-bold flex items-center gap-2 text-sm"
-              >
-                <Plus className="w-4 h-4" /> New
-              </button>
             </div>
           )}
         </div>
@@ -358,40 +385,129 @@ export default function FieldApp() {
         )}
 
         {tab === 'dash' && (
-          <div className="space-y-5">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-3">
               {[
-                { label: t.todayEntries, val: farmers.length + farms.length, color: 'bg-green-600', icon: Activity },
-                { label: t.pendingSync, val: pending, color: 'bg-amber-500', icon: CloudUpload },
+                { label: 'Total Farmer', val: farmers.length, iconBg: 'bg-green-50 text-green-600', icon: Activity },
+                {
+                  label: 'Total Land',
+                  val: farmers.reduce((sum, f) => sum + (parseInt(f.total_farms, 10) || 0), 0),
+                  iconBg: 'bg-amber-50 text-amber-600',
+                  icon: MapPin
+                },
+                { label: 'Captured Land', val: farms.length, iconBg: 'bg-yellow-50 text-yellow-600', icon: MapPin },
+                { label: 'Total Crops', val: crops.length, iconBg: 'bg-teal-50 text-teal-600', icon: Wheat },
+                { label: t.pendingSync, val: pending, iconBg: 'bg-orange-50 text-orange-600', icon: CloudUpload },
                 {
                   label: 'Total Area',
-                  val: farms.reduce((s, f) => s + (parseFloat(f.area) || 0), 0).toFixed(1) + ' Ac',
-                  color: 'bg-lime-600',
+                  val:
+                    Object.entries(
+                      farms.reduce((acc, f) => {
+                        const v = parseFloat(f.area)
+                        if (!v) return acc
+                        const unit = f.area_unit || 'Acres'
+                        acc[unit] = (acc[unit] || 0) + v
+                        return acc
+                      }, {})
+                    )
+                      .map(([unit, v]) => `${v} ${unit}`)
+                      .join(', ') || '—',
+                  iconBg: 'bg-lime-50 text-lime-600',
                   icon: Tractor
                 },
                 {
                   label: 'Last Sync',
                   val: lastSync ? lastSync.toLocaleTimeString() : '—',
-                  color: 'bg-emerald-600',
+                  iconBg: 'bg-slate-100 text-slate-600',
                   icon: Clock
                 }
               ].map((s) => (
-                <div key={s.label} className="p-4 rounded-[20px] bg-white shadow-sm border border-gray-100">
-                  <div className={`w-8 h-8 rounded-xl ${s.color} text-white flex items-center justify-center mb-3`}>
+                <div
+                  key={s.label}
+                  className="p-3 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex items-center gap-3 flex-none min-w-[130px] max-w-full sm:max-w-xs"
+                >
+                  <div className={`w-9 h-9 rounded-lg ${s.iconBg} flex items-center justify-center shrink-0`}>
                     <s.icon className="w-4 h-4" />
                   </div>
-                  <div className="text-[11px] font-bold uppercase tracking-wide text-gray-500">{s.label}</div>
-                  <div className="text-xl font-bold mt-1">{s.val}</div>
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-bold uppercase tracking-wide text-gray-400 truncate">{s.label}</div>
+                    <div className="text-lg font-bold text-gray-900 leading-tight break-words">{s.val}</div>
+                  </div>
                 </div>
               ))}
             </div>
 
-            <div className="p-5 rounded-[20px] bg-white border shadow-sm">
+            {(() => {
+              const totalDeclared = farmers.reduce((sum, f) => sum + (parseInt(f.total_farms, 10) || 0), 0)
+              const missingGps = farms.filter((f) => !f.geo_tag).length
+              const missingDocs = farmers.filter((f) => !(f.documents && f.documents.length > 0)).length
+              const progressPct = totalDeclared > 0 ? Math.min(100, Math.round((farms.length / totalDeclared) * 100)) : null
+
+              if (progressPct === null && missingGps === 0 && missingDocs === 0) return null
+
+              return (
+                <div className="p-5 rounded-xl bg-white border border-gray-100 shadow-sm space-y-4">
+                  <h3 className="font-bold flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-500" /> Your Data Quality
+                  </h3>
+
+                  {progressPct !== null && (
+                    <div>
+                      <div className="flex justify-between items-center text-xs font-bold text-gray-600 mb-1.5">
+                        <span>Land Capture Progress</span>
+                        <span className="px-2 py-0.5 rounded-full bg-green-50 text-green-700">
+                          {farms.length} / {totalDeclared} · {progressPct}%
+                        </span>
+                      </div>
+                      <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all"
+                          style={{ width: `${progressPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {(missingGps > 0 || missingDocs > 0) && (
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      {missingGps > 0 && (
+                        <button
+                          onClick={() => setTab('farms')}
+                          className="p-3 rounded-lg bg-amber-50 border border-amber-200 flex items-center gap-3 text-left hover:bg-amber-100 transition-colors"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                            <MapPin className="w-4 h-4" />
+                          </div>
+                          <span className="text-xs text-amber-900">
+                            <strong>{missingGps}</strong> land record{missingGps === 1 ? '' : 's'} missing GPS
+                          </span>
+                        </button>
+                      )}
+                      {missingDocs > 0 && (
+                        <button
+                          onClick={() => setTab('farmers')}
+                          className="p-3 rounded-lg bg-amber-50 border border-amber-200 flex items-center gap-3 text-left hover:bg-amber-100 transition-colors"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                            <User className="w-4 h-4" />
+                          </div>
+                          <span className="text-xs text-amber-900">
+                            <strong>{missingDocs}</strong> farmer{missingDocs === 1 ? '' : 's'} missing documents
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
+            <div className="p-5 rounded-xl bg-white border border-gray-100 shadow-sm">
               <h3 className="font-bold mb-4">{t.quickActions}</h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button
                   onClick={() => setShowNewFarmer(true)}
-                  className="p-5 rounded-2xl bg-green-600 text-white text-left hover:bg-green-700 shadow-lg shadow-green-200"
+                  className="p-5 rounded-xl bg-gradient-to-br from-green-600 to-green-700 text-white text-left hover:from-green-700 hover:to-green-800 shadow-lg shadow-green-200 transition-all"
                 >
                   <Users className="w-6 h-6 mb-3" />
                   <div className="font-bold">{t.newFarmer}</div>
@@ -399,7 +515,7 @@ export default function FieldApp() {
                 </button>
                 <button
                   onClick={() => setShowCaptureFarm(true)}
-                  className="p-5 rounded-2xl bg-amber-500 text-white text-left hover:bg-amber-600 shadow-lg shadow-amber-200"
+                  className="p-5 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white text-left hover:from-amber-600 hover:to-amber-700 shadow-lg shadow-amber-200 transition-all"
                 >
                   <Tractor className="w-6 h-6 mb-3" />
                   <div className="font-bold">{t.captureFarm}</div>
@@ -407,7 +523,7 @@ export default function FieldApp() {
                 </button>
                 <button
                   onClick={runSync}
-                  className="p-5 rounded-2xl bg-white border-2 border-gray-900 text-gray-900 text-left hover:bg-gray-50"
+                  className="p-5 rounded-xl bg-white border-2 border-gray-900 text-gray-900 text-left hover:bg-gray-50 transition-colors"
                 >
                   <RotateCcw className="w-6 h-6 mb-3" />
                   <div className="font-bold">{t.sync} Now</div>
@@ -416,12 +532,20 @@ export default function FieldApp() {
               </div>
             </div>
 
-            <div className="p-5 rounded-[20px] bg-white border shadow-sm">
-              <h3 className="font-bold mb-4">{t.recent}</h3>
+            <div className="p-5 rounded-xl bg-white border border-gray-100 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold">{t.recent}</h3>
+                <button onClick={() => setTab('farmers')} className="text-xs font-bold text-green-700 hover:underline">
+                  View all
+                </button>
+              </div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {farmers.slice(0, 3).map((f) => (
-                  <div key={f.id} className="p-4 rounded-2xl border bg-cream flex gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center overflow-hidden">
+                  <div
+                    key={f.id}
+                    className="p-4 rounded-lg border border-gray-100 bg-cream flex gap-3 hover:border-gray-200 transition-colors"
+                  >
+                    <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center overflow-hidden shrink-0">
                       {f.photo ? (
                         <StorageImage
                           src={f.photo}
@@ -432,9 +556,9 @@ export default function FieldApp() {
                         <User className="w-6 h-6 text-green-600" />
                       )}
                     </div>
-                    <div className="flex-1">
-                      <div className="font-bold text-sm">{f.name}</div>
-                      <div className="text-[11px] text-gray-600">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-sm truncate">{f.name}</div>
+                      <div className="text-[11px] text-gray-600 truncate">
                         {f.village}, {f.district} • {f.mobile}
                       </div>
                       <span
@@ -455,25 +579,9 @@ export default function FieldApp() {
 
         {tab === 'farmers' && (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="relative w-full sm:w-56">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search farmer, village"
-                  className="w-full pl-9 pr-3 py-2 rounded-lg border bg-white outline-none text-sm"
-                />
-              </div>
-              <span className="text-xs font-bold text-gray-500 shrink-0">{filteredFarmers.length} farmers</span>
-              <div className="ml-auto">
-                <DateRangePicker value={dateRange} onChange={setDateRange} />
-              </div>
-            </div>
-
             {farmerView === 'card' ? (
-              <div className="rounded-lg bg-white border shadow-sm overflow-hidden">
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
+              <div className="rounded-lg bg-white border shadow-sm">
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4 rounded-t-lg overflow-hidden">
                   {pagedFarmers.map((f) => (
                     <div key={f.id} className="p-4 rounded-lg bg-white border shadow-sm">
                       <div className="flex gap-3">
@@ -541,8 +649,8 @@ export default function FieldApp() {
                 />
               </div>
             ) : (
-              <div className="rounded-lg bg-white border shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
+              <div className="rounded-lg bg-white border shadow-sm">
+                <div className="overflow-x-auto rounded-t-lg">
                   <table className="w-full min-w-[1100px] text-sm border-collapse whitespace-nowrap">
                     <thead className="text-[11px] uppercase text-gray-500 bg-gray-50">
                       <tr className="divide-x divide-gray-300">
